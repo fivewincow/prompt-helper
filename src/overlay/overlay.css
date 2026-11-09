@@ -52,31 +52,6 @@
   outline: none;
 }
 
-.phrase-search-list {
-  list-style: none;
-  margin: 0;
-  padding: 4px 0;
-  max-height: 260px;
-  overflow-y: auto;
-}
-
-.phrase-search-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 8px;
-  padding: 5px 12px;
-  cursor: default;
-}
-
-.phrase-search-list li.active {
-  background: var(--accent);
-  color: #fff;
-}
-
-.phrase-search-list li.empty {
-  color: var(--text-faint);
-}
-
 .badge {
   font-size: 10.5px;
   padding: 0 6px;
@@ -86,7 +61,108 @@
   white-space: nowrap;
 }
 
-li.active .badge {
+
+/* Shared grouped list (palette and phrase search). */
+.search-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+  overflow-y: auto;
+  max-height: 260px;
+}
+
+.search-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.search-group-title {
+  padding: 6px 12px 2px;
+  color: var(--text-faint);
+  font-size: 10.5px;
+}
+
+.search-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 6px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  cursor: default;
+}
+
+.search-item.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.search-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.kbd {
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.search-item.active .kbd {
+  color: #dbe4ff;
+}
+
+.search-item.active .badge {
   background: rgba(255, 255, 255, 0.25);
   color: #fff;
+}
+
+.search-empty {
+  padding: 8px 12px;
+  color: var(--text-faint);
+}
+
+.palette {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--border-strong);
+  background: var(--bg-elev);
+}
+
+.palette-search {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.palette-input {
+  flex: 1;
+  padding: 11px 14px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: 14px var(--font-ui);
+  outline: none;
+}
+
+.palette-mode {
+  padding-right: 14px;
+  color: var(--accent-soft);
+  font-size: 11px;
+  white-space: nowrap;
+}
+
+.palette .search-list {
+  flex: 1;
+  max-height: none;
+}
+
+.palette-hints {
+  border-top: 1px solid var(--border);
+  padding: 6px 12px;
+  color: var(--text-faint);
+  font-size: 10.5px;
 }

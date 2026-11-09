@@ -103,15 +103,46 @@ export async function handleAction(actionId: string): Promise<void> {
       await setMode(plan.next);
       void showToast(modeChangedMessage(plan.next));
       return;
-    case "palette":
+    case "palette": {
+      const view = overlayStore.get().view;
       // While the fill window is open, the palette key opens its phrase search instead.
-      if (overlayStore.get().view === "fill") {
+      if (view === "fill") {
         overlayStore.dispatchFill({ type: "key", input: primaryKey("k") });
         await showOverlay("fill");
+      } else if (view === "palette") {
+        // Pressing the palette key again closes it.
+        overlayStore.paletteEvent({ type: "close", reason: "escape" });
+      } else {
+        overlayStore.openPalette(data);
+        await showOverlay("palette");
       }
-      return; // Task 14 opens the palette otherwise.
+      return;
+    }
     case "none":
       return;
+  }
+}
+
+/** A palette choice: phrases paste right away, templates go through the normal template path. */
+async function choosePaletteItem(ref: ItemRef): Promise<void> {
+  const today = todayString(new Date());
+  if (ref.kind === "phrase") {
+    const plan = planPhrase(ref.id, data, today);
+    await hideOverlay();
+    if (plan.kind === "paste") await pasteAndRecord(plan.text, plan.ref);
+    return;
+  }
+  const plan = planAction(`template:${ref.id}`, data, today);
+  if (plan.kind === "fill") {
+    // The palette turns into the fill window in place; record the choice now.
+    await update({ ...data, settings: { ...data.settings, recent: pushRecent(data.settings.recent, ref) } });
+    if (plan.fellBack) void showToast(fellBackMessage(data.settings.mode));
+    overlayStore.setView("fill", data);
+    overlayStore.dispatchFill({ type: "open", templateId: plan.templateId, title: plan.title, text: plan.text });
+    await showOverlay("fill");
+  } else if (plan.kind === "paste") {
+    await hideOverlay();
+    await pasteAndRecord(plan.text, plan.ref);
   }
 }
 
@@ -133,6 +164,12 @@ export async function startController(): Promise<void> {
     await hideOverlay();
     if (effect.type === "paste") await pasteAndRecord(effect.text, { kind: "template", id: closing.templateId });
     else await restoreFocus();
+  });
+  overlayStore.onPaletteEvent(async (e) => {
+    if (e.type === "choose") return choosePaletteItem(e.ref);
+    await hideOverlay();
+    // Escape returns to where the user was; a click elsewhere already moved focus there.
+    if (e.reason === "escape") await restoreFocus();
   });
   data = (await loadAppData()).data;
   await registerShortcuts();

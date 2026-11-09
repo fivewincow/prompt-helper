@@ -5,7 +5,7 @@
 import { useSyncExternalStore } from "react";
 import { fillReducer, type FillEffect, type FillEvent, type FillState } from "../core/fillState";
 import type { Range } from "../core/placeholders";
-import type { AppData, Platform } from "../core/types";
+import type { AppData, ItemRef, Platform } from "../core/types";
 
 export type OverlayView = "none" | "fill" | "palette";
 
@@ -18,11 +18,24 @@ export interface OverlayState {
   /** Increments whenever the textarea selection must be moved programmatically. */
   selectSeq: number;
   selectRange: Range | null;
+  /** Increments every time the palette opens, so the view can reset its query. */
+  paletteSeq: number;
 }
 
-let state: OverlayState = { view: "none", fill: null, data: null, platform: "mac", selectSeq: 0, selectRange: null };
+export type PaletteEvent = { type: "choose"; ref: ItemRef } | { type: "close"; reason: "escape" | "blur" };
+
+let state: OverlayState = {
+  view: "none",
+  fill: null,
+  data: null,
+  platform: "mac",
+  selectSeq: 0,
+  selectRange: null,
+  paletteSeq: 0,
+};
 const listeners = new Set<() => void>();
 let effectHandler: (effect: FillEffect, closing: FillState) => void = () => {};
+let paletteHandler: (e: PaletteEvent) => void = () => {};
 
 function set(next: OverlayState) {
   state = next;
@@ -37,6 +50,18 @@ export const overlayStore = {
   },
   setView(view: OverlayView, data?: AppData) {
     set({ ...state, view, data: data ?? state.data });
+  },
+  openPalette(data: AppData) {
+    set({ ...state, view: "palette", data, paletteSeq: state.paletteSeq + 1 });
+  },
+  onPaletteEvent(handler: (e: PaletteEvent) => void) {
+    paletteHandler = handler;
+  },
+  paletteEvent(e: PaletteEvent) {
+    // A late blur after the palette already closed (or turned into the fill window) is ignored.
+    if (state.view !== "palette") return;
+    set({ ...state, view: "none" });
+    paletteHandler(e);
   },
   setPlatform(platform: Platform) {
     set({ ...state, platform });

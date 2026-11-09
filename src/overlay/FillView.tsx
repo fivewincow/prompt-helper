@@ -2,10 +2,12 @@ import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react"
 import { planPhrase } from "../core/actions";
 import { remainingBlanks, type KeyInput } from "../core/fillState";
 import { isPrimaryMod } from "../core/hotkeys";
+import { paletteKey, setQuery, type PaletteState } from "../core/paletteState";
 import { todayString } from "../core/render";
 import { flatten, search } from "../core/search";
 import { HighlightedTextarea } from "../ui/HighlightedTextarea";
 import { overlayStore, useOverlayStore } from "./overlayStore";
+import { SearchList } from "./SearchList";
 import "./overlay.css";
 
 export function toKeyInput(e: KeyboardEvent): KeyInput {
@@ -22,18 +24,13 @@ export function toKeyInput(e: KeyboardEvent): KeyInput {
 
 /** ⌘K: a small phrase list inside the fill window. Chosen phrases go in at the caret. */
 function PhraseSearch() {
-  const { data } = useOverlayStore();
-  const [query, setQuery] = useState("");
-  const [active, setActive] = useState(0);
-  const items = useMemo(
-    () =>
-      data
-        ? flatten(search(query, data, data.settings.mode).filter((g) => g.title.startsWith("문구"))).filter(
-            (i) => i.ref.kind === "phrase",
-          )
-        : [],
-    [data, query],
+  const { data, platform } = useOverlayStore();
+  const [ps, setPs] = useState<PaletteState>({ query: "", active: 0 });
+  const groups = useMemo(
+    () => (data ? search(ps.query, data, data.settings.mode).filter((g) => g.title.startsWith("문구")) : []),
+    [data, ps.query],
   );
+  const items = flatten(groups);
 
   const choose = (index: number) => {
     const item = items[index];
@@ -44,17 +41,12 @@ function PhraseSearch() {
 
   const onKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
     const input = toKeyInput(e);
-    if (input.isComposing) return;
-    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      if (items.length) setActive((a) => (a + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length);
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      choose(active);
-    } else if (e.key === "Escape") {
-      e.preventDefault();
-      overlayStore.dispatchFill({ type: "key", input });
-    }
+    const r = paletteKey(ps, input, items.length);
+    if (r.state !== ps) setPs(r.state);
+    if (r.effect.type !== "none" || e.key === "ArrowDown" || e.key === "ArrowUp") e.preventDefault();
+    if (r.effect.type === "choose") choose(r.effect.index);
+    // Escape closes just the phrase search; the fill reducer handles that.
+    if (r.effect.type === "close") overlayStore.dispatchFill({ type: "key", input });
   };
 
   return (
@@ -63,30 +55,17 @@ function PhraseSearch() {
         autoFocus
         className="phrase-search-input"
         placeholder="문구 검색"
-        value={query}
-        onChange={(e) => {
-          setQuery(e.target.value);
-          setActive(0);
-        }}
+        value={ps.query}
+        onChange={(e) => setPs((s) => setQuery(s, e.target.value))}
         onKeyDown={onKeyDown}
       />
-      <ul className="phrase-search-list">
-        {items.map((item, i) => (
-          <li
-            key={item.ref.id}
-            className={i === active ? "active" : undefined}
-            onMouseEnter={() => setActive(i)}
-            onMouseDown={(e) => {
-              e.preventDefault();
-              choose(i);
-            }}
-          >
-            <span>{item.label}</span>
-            {item.recommended && <span className="badge">추천</span>}
-          </li>
-        ))}
-        {items.length === 0 && <li className="empty">맞는 문구가 없어요</li>}
-      </ul>
+      <SearchList
+        groups={groups}
+        active={ps.active}
+        platform={platform}
+        onHover={(i) => setPs((s) => ({ ...s, active: i }))}
+        onChoose={choose}
+      />
     </div>
   );
 }
