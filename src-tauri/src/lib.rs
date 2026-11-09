@@ -3,6 +3,7 @@
 //! Rust only bridges OS features (hotkeys, clipboard, key simulation, focus, files).
 //! All app logic lives in the TypeScript front end.
 
+mod app_windows;
 mod focus;
 mod paste;
 mod permissions;
@@ -51,6 +52,7 @@ pub fn run() {
             focus::remember_frontmost,
             paste::paste_text,
             shortcuts::set_shortcuts,
+            app_windows::show_toast,
         ])
         .setup(|app| {
             // Accessory policy: no Dock icon and no app switcher entry, like other menu bar apps.
