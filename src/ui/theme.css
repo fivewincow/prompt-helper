@@ -1,0 +1,39 @@
+/* Dark theme tokens, taken from the agreed mockups (docs/superpowers/specs/mockups). */
+:root {
+  --bg: #24262b;
+  --bg-elev: #2d3036;
+  --bg-input: #1b1c20;
+  --bg-hover: #33363d;
+  --border: #3a3d45;
+  --border-strong: #4a4e58;
+  --text: #e1e3e8;
+  --text-dim: #a3a7b1;
+  --text-faint: #80848f;
+  --accent: #3b5bdb;
+  --accent-soft: #8fb8ff;
+  --placeholder: #e3b866;
+  --fill: #9be3a8;
+  --warn: #f0b45a;
+  --danger: #f08c8c;
+  --radius: 8px;
+  --font-ui: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Segoe UI", "Malgun Gothic", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.5 var(--font-ui);
+}
+
+#root {
+  height: 100%;
+}
