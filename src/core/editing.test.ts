@@ -1,6 +1,12 @@
 import { describe, expect, test } from "vitest";
 import {
   actionLabel,
+  addPhrase,
+  deletePhrase,
+  movePhrase,
+  setInsertMode,
+  setLaunchAtLogin,
+  updatePhrase,
   copyBodyToModes,
   createTemplate,
   deleteTemplate,
@@ -80,4 +86,36 @@ test("actionLabel names hotkey actions for conflict messages", () => {
   expect(actionLabel("palette", d)).toBe("검색 팝업");
   expect(actionLabel("cycleMode", d)).toBe("모드 전환");
   expect(actionLabel("template:gone", d)).toBe("삭제된 템플릿");
+});
+
+describe("phrases", () => {
+  test("a new phrase is empty, applies to all modes and goes last in its category", () => {
+    const a = addPhrase(d, "p-x", "범위");
+    expect(a.phrases.find((p) => p.id === "p-x")).toMatchObject({ text: "", category: "범위", recommendedModes: "all" });
+    const scope = a.phrases.filter((p) => p.category === "범위").sort((x, y) => x.order - y.order);
+    expect(scope.at(-1)?.id).toBe("p-x");
+  });
+
+  test("an edited phrase list is stored; editing back to the default stores nothing", () => {
+    expect(toStored(updatePhrase(d, "p01", { text: "계획부터" })).phrases).not.toBeNull();
+    expect(toStored(updatePhrase(updatePhrase(d, "p01", { text: "x" }), "p01", { text: d.phrases[0].text })).phrases).toBeNull();
+  });
+
+  test("deleting a phrase removes it from recent too", () => {
+    const r = { ...d, settings: { ...d.settings, recent: [{ kind: "phrase" as const, id: "p02" }] } };
+    const after = deletePhrase(r, "p02");
+    expect(after.settings.recent).toEqual([]);
+    expect(after.phrases.some((p) => p.id === "p02")).toBe(false);
+  });
+
+  test("moving renumbers the order", () => {
+    const moved = movePhrase(d, "p17", 0);
+    expect(moved.phrases[0].id).toBe("p17");
+    expect(moved.phrases.map((p) => p.order)).toEqual([...Array(17).keys()]);
+  });
+});
+
+test("insert mode and launch at login", () => {
+  expect(setInsertMode(d, "direct").settings.insertMode).toBe("direct");
+  expect(setLaunchAtLogin(d, false).settings.launchAtLogin).toBe(false);
 });

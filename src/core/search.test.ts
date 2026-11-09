@@ -55,3 +55,8 @@ describe("pushRecent", () => {
     expect(pushRecent(five, { kind: "phrase", id: "n" })).toHaveLength(5);
   });
 });
+
+test("empty phrases (just added in the editor) are not listed", () => {
+  const withEmpty = { ...data, phrases: [...data.phrases, { ...data.phrases[0], id: "p-empty", text: "  " }] };
+  expect(flatten(search("", withEmpty, "claude")).some((i) => i.ref.id === "p-empty")).toBe(false);
+});

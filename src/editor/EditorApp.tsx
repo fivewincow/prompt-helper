@@ -5,6 +5,8 @@ import { onDataChanged, onEditorTab, onRegistrationResult } from "../bridge/even
 import { loadAppData, saveAppData } from "../bridge/store";
 import { detectPlatform } from "../core/hotkeys";
 import type { AppData } from "../core/types";
+import { PhrasesTab } from "./PhrasesTab";
+import { SettingsTab } from "./SettingsTab";
 import { TemplatesTab } from "./TemplatesTab";
 import "./editor.css";
 
@@ -83,7 +85,16 @@ export function EditorApp() {
           onChange={change}
         />
       )}
-      {tab !== "templates" && <p className="placeholder-tab">준비 중이에요.</p>}
+      {tab === "phrases" && <PhrasesTab data={data} onChange={change} />}
+      {tab === "settings" && (
+        <SettingsTab
+          data={data}
+          platform={platform}
+          systemShortcuts={systemShortcuts}
+          failures={failures}
+          onChange={change}
+        />
+      )}
     </main>
   );
 }

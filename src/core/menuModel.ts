@@ -42,7 +42,7 @@ export function buildMenuModel(data: AppData, platform: Platform, accessibilityO
 
   const phrases: MenuNode[] = PHRASE_CATEGORIES.flatMap((category): MenuNode[] => {
     const items = data.phrases
-      .filter((p) => p.category === category)
+      .filter((p) => p.category === category && p.text.trim() !== "")
       .sort((a, b) => a.order - b.order)
       .map((p): MenuNode => ({ type: "item", id: `phrase:${p.id}`, text: p.text }));
     return items.length > 0 ? [{ type: "label", text: category }, ...items] : [];

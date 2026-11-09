@@ -21,6 +21,7 @@ test("no data file yet is a normal first run, not a recovery", async () => {
   vi.mocked(loadData).mockResolvedValue(null);
   const r = await loadAppData();
   expect(r.recovered).toBe(false);
+  expect(r.firstRun).toBe(true);
   expect(backupData).not.toHaveBeenCalled();
 });
 
@@ -28,7 +29,9 @@ test("a valid file is merged with the defaults", async () => {
   const data = mergeWithDefaults(null);
   data.settings.mode = "gemini";
   vi.mocked(loadData).mockResolvedValue(JSON.stringify(toStored(data)));
-  expect((await loadAppData()).data.settings.mode).toBe("gemini");
+  const r = await loadAppData();
+  expect(r.data.settings.mode).toBe("gemini");
+  expect(r.firstRun).toBe(false);
 });
 
 test("saving writes the stored form and announces who changed it", async () => {

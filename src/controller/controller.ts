@@ -23,6 +23,7 @@ import {
 } from "../bridge/commands";
 import { emitRegistrationResult, onDataChanged, onRecording, onShortcut } from "../bridge/events";
 import { loadAppData, saveAppData } from "../bridge/store";
+import { enable as enableAutostart } from "@tauri-apps/plugin-autostart";
 import { overlayStore } from "../overlay/overlayStore";
 import { syncTray } from "./tray";
 
@@ -158,6 +159,13 @@ function primaryKey(letter: string) {
   };
 }
 
+/** First launch: turn on launch-at-login (the default) and explain the permission if missing. */
+async function firstRunSetup(): Promise<void> {
+  if (data.settings.launchAtLogin) await enableAutostart().catch((e) => console.warn("autostart", e));
+  await saveAppData(data, "controller");
+  if (platform === "mac" && !accessibilityOk) await openEditor("settings");
+}
+
 export async function startController(): Promise<void> {
   overlayStore.setPlatform(platform);
   overlayStore.onFillEffect(async (effect, closing) => {
@@ -171,9 +179,11 @@ export async function startController(): Promise<void> {
     // Escape returns to where the user was; a click elsewhere already moved focus there.
     if (e.reason === "escape") await restoreFocus();
   });
-  data = (await loadAppData()).data;
+  const loaded = await loadAppData();
+  data = loaded.data;
   await registerShortcuts();
   await refreshTray();
+  if (loaded.firstRun) await firstRunSetup();
   await onShortcut((actionId) => void handleAction(actionId));
   await onDataChanged(async ({ source }) => {
     if (source !== "editor") return;

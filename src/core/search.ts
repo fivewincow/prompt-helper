@@ -58,7 +58,7 @@ export function search(query: string, data: AppData, mode: Mode): SearchGroup[] 
 
   for (const category of PHRASE_CATEGORIES) {
     const items = data.phrases
-      .filter((p) => p.category === category && matches(p.text, tokens))
+      .filter((p) => p.category === category && p.text.trim() !== "" && matches(p.text, tokens))
       .sort((a, b) => a.order - b.order)
       .map((p) => phraseItem(p, mode))
       // Stable sort: recommended first, otherwise keep the order above.

@@ -6,14 +6,15 @@ import { emitDataChanged, type DataSource } from "./events";
 /**
  * Loads data.json and merges it with the defaults. An unreadable file is moved aside
  * (data.corrupt-<time>.json) and the app starts from defaults instead of failing.
+ * `firstRun` is true when there was no file at all.
  */
-export async function loadAppData(): Promise<{ data: AppData; recovered: boolean }> {
+export async function loadAppData(): Promise<{ data: AppData; recovered: boolean; firstRun: boolean }> {
   const raw = await loadData();
-  if (raw === null) return { data: mergeWithDefaults(null), recovered: false };
+  if (raw === null) return { data: mergeWithDefaults(null), recovered: false, firstRun: true };
   const parsed = parseStored(raw);
-  if (parsed.ok) return { data: mergeWithDefaults(parsed.value), recovered: false };
+  if (parsed.ok) return { data: mergeWithDefaults(parsed.value), recovered: false, firstRun: false };
   await backupData();
-  return { data: mergeWithDefaults(null), recovered: true };
+  return { data: mergeWithDefaults(null), recovered: true, firstRun: false };
 }
 
 /** Saves only what differs from the defaults and tells the other windows who changed it. */

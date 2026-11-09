@@ -53,3 +53,8 @@ test("menu bar title per mode", () => {
   expect(trayTitle("claude")).toBe("CC");
   expect(trayTitle("gemini")).toBe("GM");
 });
+
+test("empty phrases are not shown in the menu", () => {
+  const withEmpty = { ...data, phrases: [...data.phrases, { ...data.phrases[0], id: "p-empty", text: "" }] };
+  expect(JSON.stringify(buildMenuModel(withEmpty, "mac", true))).not.toContain("phrase:p-empty");
+});
