@@ -161,7 +161,10 @@ function primaryKey(letter: string) {
 
 /** First launch: turn on launch-at-login (the default) and explain the permission if missing. */
 async function firstRunSetup(): Promise<void> {
-  if (data.settings.launchAtLogin) await enableAutostart().catch((e) => console.warn("autostart", e));
+  // Dev builds (`tauri dev`) would register the debug binary, which cannot start without the
+  // Vite server; only real builds turn on launch-at-login by default.
+  if (data.settings.launchAtLogin && !import.meta.env.DEV)
+    await enableAutostart().catch((e) => console.warn("autostart", e));
   await saveAppData(data, "controller");
   if (platform === "mac" && !accessibilityOk) await openEditor("settings");
 }
