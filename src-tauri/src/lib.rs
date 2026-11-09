@@ -25,7 +25,10 @@ pub fn run() {
         // instead of starting a duplicate that would fight over the same hotkeys.
         .plugin(tauri_plugin_single_instance::init(|app, _argv, _cwd| {
             // Launching the app again (e.g. from Finder) opens the editor of the running one.
-            let _ = app_windows::open_editor(app.clone(), Some("templates".into()));
+            let app = app.clone();
+            tauri::async_runtime::spawn(async move {
+                let _ = app_windows::open_editor(app, Some("templates".into())).await;
+            });
         }))
         .plugin(tauri_plugin_global_shortcut::Builder::new().build())
         .plugin(tauri_plugin_clipboard_manager::init())

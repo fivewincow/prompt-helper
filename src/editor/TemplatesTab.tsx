@@ -28,7 +28,7 @@ interface Props {
   onChange: (next: AppData) => void;
 }
 
-type Confirm = "copy" | "delete" | null;
+type Confirm = "copy" | "delete" | "reset" | null;
 
 export function TemplatesTab({ data, platform, systemShortcuts, failures, onChange }: Props) {
   const [selectedId, setSelectedId] = useState(data.templates[0]?.id);
@@ -160,11 +160,29 @@ export function TemplatesTab({ data, platform, systemShortcuts, failures, onChan
           </div>
 
           <div className="tpl-row">
-            {selected.builtIn && (
-              <button type="button" className="btn" onClick={() => onChange(resetTemplate(data, selected.id))}>
-                기본값으로
-              </button>
-            )}
+            {selected.builtIn &&
+              (confirm === "reset" ? (
+                <span className="confirm">
+                  세 모드의 본문과 이름을 모두 기본값으로 되돌릴까요?
+                  <button
+                    type="button"
+                    className="btn danger"
+                    onClick={() => {
+                      onChange(resetTemplate(data, selected.id));
+                      setConfirm(null);
+                    }}
+                  >
+                    되돌리기
+                  </button>
+                  <button type="button" className="btn" onClick={() => setConfirm(null)}>
+                    취소
+                  </button>
+                </span>
+              ) : (
+                <button type="button" className="btn" onClick={() => setConfirm("reset")}>
+                  기본값으로
+                </button>
+              ))}
             {confirm === "copy" ? (
               <span className="confirm">
                 {others.map((m) => MODE_INFO[m].label).join(", ")} 버전을 덮어쓸까요?

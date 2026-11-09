@@ -34,11 +34,13 @@ fn encode_fragment(s: &str) -> String {
 
 /// Shows a short notice in the top-right corner without taking keyboard focus,
 /// so the user can keep typing where they were.
+// Window-creating commands are async: creating a window from a sync command deadlocks on Windows.
 #[tauri::command]
-pub fn show_toast(app: AppHandle, message: String) -> Result<(), String> {
+pub async fn show_toast(app: AppHandle, message: String) -> Result<(), String> {
     let window = match app.get_webview_window("toast") {
         Some(w) => {
-            w.emit("toast-message", &message).map_err(|e| e.to_string())?;
+            w.emit("toast-message", &message)
+                .map_err(|e| e.to_string())?;
             w
         }
         // A new window cannot receive events until its page has loaded, so the first
@@ -63,7 +65,8 @@ pub fn show_toast(app: AppHandle, message: String) -> Result<(), String> {
     if let Some(m) = monitor_under_cursor(&app) {
         let area = m.work_area();
         let scale = m.scale_factor();
-        let x = f64::from(area.position.x) + f64::from(area.size.width) - (TOAST_SIZE.0 + TOAST_MARGIN) * scale;
+        let x = f64::from(area.position.x) + f64::from(area.size.width)
+            - (TOAST_SIZE.0 + TOAST_MARGIN) * scale;
         let y = f64::from(area.position.y) + TOAST_MARGIN * scale;
         let _ = window.set_position(PhysicalPosition::new(x, y));
     }
@@ -81,7 +84,11 @@ pub fn show_overlay(app: AppHandle, view: String) -> Result<(), String> {
     let w = app
         .get_webview_window("overlay")
         .ok_or("overlay window is missing")?;
-    let (width, height) = if view == "palette" { PALETTE_SIZE } else { FILL_SIZE };
+    let (width, height) = if view == "palette" {
+        PALETTE_SIZE
+    } else {
+        FILL_SIZE
+    };
     w.set_size(LogicalSize::new(width, height))
         .map_err(|e| e.to_string())?;
     if let Some(m) = monitor_under_cursor(&app) {
@@ -95,32 +102,41 @@ pub fn show_overlay(app: AppHandle, view: String) -> Result<(), String> {
     w.set_focus().map_err(|e| e.to_string())
 }
 
-#[tauri::command]
-pub fn hide_overlay(app: AppHandle) -> Result<(), String> {
-    match app.get_webview_window("overlay") {
-        Some(w) => w.hide().map_err(|e| e.to_string()),
-        None => Ok(()),
+pub fn hide_overlay_window(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("overlay") {
+        let _ = w.hide();
     }
+}
+
+#[tauri::command]
+pub fn hide_overlay(app: AppHandle) {
+    hide_overlay_window(&app);
 }
 
 /// Gives focus back to the app the user was in (after Esc in the fill window or palette).
 #[tauri::command]
-pub async fn restore_focus(state: State<'_, RememberedTarget>) -> Result<(), String> {
+pub async fn restore_focus(
+    app: AppHandle,
+    state: State<'_, RememberedTarget>,
+) -> Result<(), String> {
     let target = *state.0.lock().unwrap();
-    if let Some(t) = target {
-        // Polls until the app is in front, so keep it off the main thread.
-        tauri::async_runtime::spawn_blocking(move || focus::activate_and_wait(&t))
-            .await
-            .map_err(|e| e.to_string())?;
-    }
-    Ok(())
+    // Polls until the app is in front, so keep it off the main thread. Activate first, then
+    // hide the overlay (Windows only lets the foreground process hand the foreground away).
+    tauri::async_runtime::spawn_blocking(move || {
+        if let Some(t) = target {
+            focus::activate_and_wait(&t);
+        }
+        hide_overlay_window(&app);
+    })
+    .await
+    .map_err(|e| e.to_string())
 }
 
 /// Opens the editor window, or brings it to the front if it is already open.
 /// `tab` picks the starting tab: through the URL fragment for a new window (its page is not
 /// listening yet), through the `editor-tab` event for an open one.
 #[tauri::command]
-pub fn open_editor(app: AppHandle, tab: Option<String>) -> Result<(), String> {
+pub async fn open_editor(app: AppHandle, tab: Option<String>) -> Result<(), String> {
     let tab = tab.unwrap_or_else(|| "templates".into());
     if let Some(w) = app.get_webview_window("editor") {
         let _ = w.unminimize();
@@ -136,6 +152,13 @@ pub fn open_editor(app: AppHandle, tab: Option<String>) -> Result<(), String> {
         .center()
         .build()
         .map_err(|e| e.to_string())?;
+    // The editor may close while it has the hotkeys paused for recording; tell the controller.
+    let handle = app.clone();
+    w.on_window_event(move |event| {
+        if let tauri::WindowEvent::Destroyed = event {
+            let _ = handle.emit_to("overlay", "editor-closed", ());
+        }
+    });
     // A menu bar app is not active by default, so explicitly bring the new window forward.
     w.set_focus().map_err(|e| e.to_string())
 }

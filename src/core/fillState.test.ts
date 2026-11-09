@@ -107,3 +107,37 @@ describe("phrase search", () => {
     expect(remainingBlanks(s.state!)).toBe(1);
   });
 });
+
+describe("blanks are tracked by position (Review I3)", () => {
+  const open = (t: string) => fillReducer(null, { type: "open", templateId: "x", title: "T", text: t }, "mac").state!;
+
+  test("a pasted `{}` (empty JSON object) is not counted or visited", () => {
+    const s = open("{a} {}");
+    const e = fillReducer(s, { type: "edit", text: "x {} {}", selection: { start: 4, end: 4 } }, "mac").state!;
+    expect(remainingBlanks(e)).toBe(1);
+    const tab = fillReducer({ ...e, selection: { start: 0, end: 0 } }, k("Tab"), "mac");
+    expect(tab.effect).toEqual({ type: "select", range: { start: 5, end: 7 } });
+  });
+
+  test("typing before a blank shifts it; typing inside a blank fills it", () => {
+    const s = open("{a} {b}");
+    const before = fillReducer(s, { type: "edit", text: "zz{a} {b}", selection: { start: 2, end: 2 } }, "mac").state!;
+    expect(before.blanks).toEqual([
+      { start: 2, end: 5 },
+      { start: 6, end: 9 },
+    ]);
+    const inside = fillReducer(before, { type: "edit", text: "zz{xa} {b}", selection: { start: 4, end: 4 } }, "mac").state!;
+    expect(inside.blanks).toEqual([{ start: 7, end: 10 }]);
+  });
+
+  test("an inserted phrase shifts later blanks and adds its own", () => {
+    const s = { ...open("{a} {b}"), selection: { start: 4, end: 4 } };
+    const r = fillReducer(s, { type: "insertPhrase", text: "{c} " }, "mac").state!;
+    expect(r.text).toBe("{a} {c} {b}");
+    expect(r.blanks).toEqual([
+      { start: 0, end: 3 },
+      { start: 4, end: 7 },
+      { start: 8, end: 11 },
+    ]);
+  });
+});

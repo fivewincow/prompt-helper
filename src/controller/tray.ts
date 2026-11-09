@@ -17,16 +17,21 @@ let currentMenu: Menu | null = null;
 
 type ItemOptions = MenuItemOptions | CheckMenuItemOptions | SubmenuOptions | PredefinedMenuItemOptions;
 
-function toOptions(node: MenuNode, onItem: (id: string) => void): ItemOptions {
+function toOptions(node: MenuNode, onItem: (id: string) => void, withShortcuts: boolean): ItemOptions {
   switch (node.type) {
     case "separator":
       return { item: "Separator" };
     case "label":
       return { text: node.text, enabled: false };
     case "submenu":
-      return { text: node.text, items: node.items.map((n) => toOptions(n, onItem)) };
+      return { text: node.text, items: node.items.map((n) => toOptions(n, onItem, withShortcuts)) };
     case "item": {
-      const base: MenuItemOptions = { id: node.id, text: node.text, accelerator: node.shortcut, action: onItem };
+      const base: MenuItemOptions = {
+        id: node.id,
+        text: node.text,
+        accelerator: withShortcuts ? node.shortcut : undefined,
+        action: onItem,
+      };
       return node.checked === undefined ? base : { ...base, checked: node.checked };
     }
   }
@@ -39,7 +44,10 @@ export async function syncTray(
   accessibilityOk: boolean,
   onItem: (id: string) => void,
 ): Promise<void> {
-  const menu = await Menu.new({ items: buildMenuModel(data, platform, accessibilityOk).map((n) => toOptions(n, onItem)) });
+  const model = buildMenuModel(data, platform, accessibilityOk);
+  const build = (withShortcuts: boolean) => Menu.new({ items: model.map((n) => toOptions(n, onItem, withShortcuts)) });
+  // A hotkey the native menu cannot parse must not cost the user the whole menu.
+  const menu = await build(true).catch(() => build(false));
   const tooltip = `Prompt Helper · ${MODE_INFO[data.settings.mode].label}`;
   // macOS shows just the mode letters in the menu bar; Windows has no tray titles, so it gets the icon.
   const title = platform === "mac" ? trayTitle(data.settings.mode) : null;

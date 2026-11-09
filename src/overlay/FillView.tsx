@@ -89,6 +89,15 @@ export function FillView() {
     if (!phraseSearch) textarea.current?.focus();
   }, [phraseSearch]);
 
+  // Coming back from another app (e.g. after copying a log) must land in the text again.
+  useEffect(() => {
+    const onFocus = () => {
+      if (document.activeElement === document.body) textarea.current?.focus();
+    };
+    window.addEventListener("focus", onFocus);
+    return () => window.removeEventListener("focus", onFocus);
+  }, []);
+
   if (!fill) return null;
   const mod = platform === "mac" ? "⌘" : "Ctrl+";
 
@@ -107,12 +116,22 @@ export function FillView() {
   };
 
   return (
-    <div className="fill">
+    <div
+      className="fill"
+      // A click on the title or hints would otherwise move focus to <body>, where Esc and
+      // ⌘Enter do nothing; keep it in the text.
+      onMouseDown={(e) => {
+        if (e.target instanceof HTMLTextAreaElement || e.target instanceof HTMLInputElement) return;
+        if ((e.target as HTMLElement).closest(".phrase-search")) return;
+        e.preventDefault();
+        textarea.current?.focus();
+      }}
+    >
       <header className="fill-title">{fill.title}</header>
       <HighlightedTextarea
         ref={textarea}
         value={fill.text}
-        known={fill.known}
+        blanks={fill.blanks}
         autoFocus
         onChange={(text, selection) => overlayStore.dispatchFill({ type: "edit", text, selection })}
         onSelect={(selection) => overlayStore.dispatchFill({ type: "select", selection })}

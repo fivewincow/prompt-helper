@@ -9,6 +9,7 @@ export const EVENTS = {
   toast: "toast-message",
   editorTab: "editor-tab",
   recording: "hotkey-recording",
+  editorClosed: "editor-closed",
 } as const;
 
 export type DataSource = "controller" | "editor";
@@ -35,3 +36,6 @@ export const onEditorTab = (cb: (tab: EditorTab) => void) => listen<EditorTab>(E
 export const emitRecording = (active: boolean) => emit(EVENTS.recording, active);
 
 export const onRecording = (cb: (active: boolean) => void) => listen<boolean>(EVENTS.recording, (e) => cb(e.payload));
+
+/** Rust tells the overlay when the editor window is gone (it may have closed mid-recording). */
+export const onEditorClosed = (cb: () => void) => listen(EVENTS.editorClosed, () => cb());

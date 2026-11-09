@@ -8,7 +8,7 @@ use std::sync::Mutex;
 use std::thread::sleep;
 use std::time::{Duration, Instant};
 
-use tauri::{AppHandle, Manager, State};
+use tauri::{AppHandle, Manager};
 
 /// The paste target: a process id on macOS, a window handle on Windows.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -21,15 +21,34 @@ pub struct RememberedTarget(pub Mutex<Option<FocusTarget>>);
 /// How long to wait for the target app to come to the front before pasting anyway.
 const ACTIVATE_WAIT_MAX_MS: u64 = 500;
 
+/// Where the next paste goes. While our overlay is up, the target was remembered when it
+/// opened, and the front app is the overlay itself (or an app the user visited to copy
+/// something), so the target is kept. Otherwise it is the app now in front.
+pub fn next_target(
+    current: Option<FocusTarget>,
+    frontmost: Option<FocusTarget>,
+    overlay_visible: bool,
+) -> Option<FocusTarget> {
+    if overlay_visible { current } else { frontmost }
+}
+
+fn overlay_visible(app: &AppHandle) -> bool {
+    app.get_webview_window("overlay")
+        .and_then(|w| w.is_visible().ok())
+        .unwrap_or(false)
+}
+
+/// Called on every hotkey press and menu choice, before anything takes focus.
 pub fn remember(app: &AppHandle) {
     if let Some(state) = app.try_state::<RememberedTarget>() {
-        *state.0.lock().unwrap() = frontmost();
+        let mut target = state.0.lock().unwrap();
+        *target = next_target(*target, frontmost(), overlay_visible(app));
     }
 }
 
 #[tauri::command]
-pub fn remember_frontmost(state: State<RememberedTarget>) {
-    *state.0.lock().unwrap() = frontmost();
+pub fn remember_frontmost(app: AppHandle) {
+    remember(&app);
 }
 
 /// Activates `t` and waits until it is actually in front, so the paste keystroke lands there.
@@ -68,7 +87,9 @@ pub fn frontmost() -> Option<FocusTarget> {
 #[cfg(target_os = "macos")]
 pub fn activate(t: &FocusTarget) -> bool {
     use objc2_app_kit::{NSApplicationActivationOptions, NSRunningApplication};
-    let Ok(pid) = i32::try_from(t.0) else { return false };
+    let Ok(pid) = i32::try_from(t.0) else {
+        return false;
+    };
     let Some(app) = NSRunningApplication::runningApplicationWithProcessIdentifier(pid) else {
         return false;
     };
@@ -83,10 +104,10 @@ mod win {
 
     use windows::Win32::Foundation::HWND;
     use windows::Win32::System::Threading::GetCurrentProcessId;
-    use windows::Win32::UI::Accessibility::{SetWinEventHook, HWINEVENTHOOK};
+    use windows::Win32::UI::Accessibility::{HWINEVENTHOOK, SetWinEventHook};
     use windows::Win32::UI::WindowsAndMessaging::{
-        GetClassNameW, GetForegroundWindow, GetWindowThreadProcessId, SetForegroundWindow,
-        EVENT_SYSTEM_FOREGROUND, WINEVENT_OUTOFCONTEXT,
+        EVENT_SYSTEM_FOREGROUND, GetClassNameW, GetForegroundWindow, GetWindowThreadProcessId,
+        SetForegroundWindow, WINEVENT_OUTOFCONTEXT,
     };
 
     /// Last foreground window that is neither ours nor the taskbar. Clicking the tray icon
@@ -180,4 +201,27 @@ pub fn frontmost() -> Option<FocusTarget> {
 #[cfg(target_os = "windows")]
 pub fn activate(t: &FocusTarget) -> bool {
     win::activate(t.0 as isize)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn overlay_visible_keeps_the_target() {
+        // A menu click while the fill window is in front must not wipe where the paste goes.
+        let a = Some(FocusTarget(1));
+        assert_eq!(next_target(a, None, true), a);
+        assert_eq!(next_target(a, Some(FocusTarget(2)), true), a);
+    }
+
+    #[test]
+    fn overlay_hidden_takes_the_frontmost_app() {
+        assert_eq!(
+            next_target(Some(FocusTarget(1)), Some(FocusTarget(2)), false),
+            Some(FocusTarget(2))
+        );
+        // Our own window in front (frontmost is None): paste goes to the focused field there.
+        assert_eq!(next_target(Some(FocusTarget(1)), None, false), None);
+    }
 }

@@ -1,5 +1,5 @@
 import { isPrimaryMod } from "./hotkeys";
-import { findPlaceholders, nextPlaceholder, placeholderSet, type Range } from "./placeholders";
+import { findPlaceholders, type Range } from "./placeholders";
 import type { Platform } from "./types";
 
 /** The parts of a KeyboardEvent the fill window and palette react to. */
@@ -18,8 +18,12 @@ export interface FillState {
   title: string;
   initial: string;
   text: string;
-  /** Blanks of the template as opened, plus those of inserted phrases. Only these count as unfilled. */
-  known: Set<string>;
+  /**
+   * Positions of the template's own blanks (plus those of inserted phrases), moved along with
+   * every edit. Tracking positions rather than text keeps a pasted `{}` (an empty JSON object
+   * in a log) from being mistaken for an unfilled blank.
+   */
+  blanks: Range[];
   selection: Range;
   confirmSubmit: boolean;
   pendingReplace: { templateId: string; title: string; text: string } | null;
@@ -46,19 +50,42 @@ type Result = { state: FillState | null; effect: FillEffect };
 const none = (state: FillState | null): Result => ({ state, effect: { type: "none" } });
 
 export function remainingBlanks(s: FillState): number {
-  return findPlaceholders(s.text, s.known).length;
+  return s.blanks.length;
+}
+
+/** Moves blanks through an edit: untouched ones shift, ones the edit overlaps count as filled. */
+export function shiftBlanks(blanks: Range[], before: string, after: string): Range[] {
+  const max = Math.min(before.length, after.length);
+  let prefix = 0;
+  while (prefix < max && before[prefix] === after[prefix]) prefix++;
+  let suffix = 0;
+  while (suffix < max - prefix && before[before.length - 1 - suffix] === after[after.length - 1 - suffix]) suffix++;
+  const changedEnd = before.length - suffix;
+  const delta = after.length - before.length;
+  return blanks.flatMap((r) => {
+    if (r.end <= prefix) return [r];
+    if (r.start >= changedEnd) return [{ start: r.start + delta, end: r.end + delta }];
+    return [];
+  });
+}
+
+function nextBlank(blanks: Range[], from: number, dir: 1 | -1): Range | null {
+  if (blanks.length === 0) return null;
+  if (dir === 1) return blanks.find((r) => r.start >= from) ?? blanks[0];
+  const before = blanks.filter((r) => r.end <= from);
+  return before.length > 0 ? before[before.length - 1] : blanks[blanks.length - 1];
 }
 
 function openFresh(o: { templateId: string; title: string; text: string }): Result {
-  const known = placeholderSet(o.text);
-  const first = findPlaceholders(o.text, known)[0] ?? { start: o.text.length, end: o.text.length };
+  const blanks = findPlaceholders(o.text);
+  const first = blanks[0] ?? { start: o.text.length, end: o.text.length };
   return {
     state: {
       templateId: o.templateId,
       title: o.title,
       initial: o.text,
       text: o.text,
-      known,
+      blanks,
       selection: first,
       confirmSubmit: false,
       pendingReplace: null,
@@ -87,7 +114,7 @@ function onKey(s: FillState, input: KeyInput, platform: Platform): Result {
   if (input.key === "Tab") {
     const dir = input.shiftKey ? -1 : 1;
     const from = dir === 1 ? s.selection.end : s.selection.start;
-    const r = nextPlaceholder(s.text, from, dir, s.known);
+    const r = nextBlank(s.blanks, from, dir);
     return r ? { state: { ...s, selection: r }, effect: { type: "select", range: r } } : none(s);
   }
 
@@ -113,7 +140,9 @@ export function fillReducer(s: FillState | null, e: FillEvent, platform: Platfor
       if (s && s.text !== s.initial) return none({ ...s, pendingReplace: { templateId: e.templateId, title: e.title, text: e.text } });
       return openFresh(e);
     case "edit":
-      return none(s && { ...s, text: e.text, selection: e.selection, confirmSubmit: false });
+      return none(
+        s && { ...s, text: e.text, blanks: shiftBlanks(s.blanks, s.text, e.text), selection: e.selection, confirmSubmit: false },
+      );
     case "select":
       return none(s && { ...s, selection: e.selection });
     case "insertPhrase": {
@@ -121,10 +150,15 @@ export function fillReducer(s: FillState | null, e: FillEvent, platform: Platfor
       const { start, end } = s.selection;
       const text = s.text.slice(0, start) + e.text + s.text.slice(end);
       const caret = start + e.text.length;
-      const known = new Set([...s.known, ...placeholderSet(e.text)]);
+      const delta = e.text.length - (end - start);
+      const kept = s.blanks.flatMap((r) =>
+        r.end <= start ? [r] : r.start >= end ? [{ start: r.start + delta, end: r.end + delta }] : [],
+      );
+      const added = findPlaceholders(e.text).map((r) => ({ start: r.start + start, end: r.end + start }));
+      const blanks = [...kept, ...added].sort((a, b) => a.start - b.start);
       const selection = { start: caret, end: caret };
       return {
-        state: { ...s, text, known, selection, phraseSearch: false, confirmSubmit: false },
+        state: { ...s, text, blanks, selection, phraseSearch: false, confirmSubmit: false },
         effect: { type: "select", range: selection },
       };
     }

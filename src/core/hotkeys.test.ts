@@ -6,6 +6,7 @@ import {
   findConflicts,
   formatAccelerator,
   isPrimaryMod,
+  recordKey,
 } from "./hotkeys";
 import type { ActionId } from "./types";
 
@@ -87,4 +88,34 @@ test("isPrimaryMod is Command on mac and Ctrl on windows", () => {
   expect(isPrimaryMod({ metaKey: true, ctrlKey: false }, "mac")).toBe(true);
   expect(isPrimaryMod({ metaKey: false, ctrlKey: true }, "mac")).toBe(false);
   expect(isPrimaryMod({ metaKey: false, ctrlKey: true }, "windows")).toBe(true);
+});
+
+describe("recordKey (Review C2)", () => {
+  const key = (k: string, code: string, m: Partial<Record<"ctrlKey" | "altKey" | "shiftKey" | "metaKey", boolean>> = {}) => ({
+    key: k,
+    ...ev(code, m),
+  });
+
+  test("Escape cancels and Backspace clears", () => {
+    expect(recordKey(key("Escape", "Escape"), "palette", DEFAULT_BINDINGS, "mac")).toEqual({ type: "cancel" });
+    expect(recordKey(key("Backspace", "Backspace"), "palette", DEFAULT_BINDINGS, "mac")).toEqual({ type: "clear" });
+  });
+
+  test("a key without ⌃/⌥/⌘ keeps waiting", () => {
+    expect(recordKey(key("a", "KeyA"), "palette", DEFAULT_BINDINGS, "mac")).toEqual({ type: "wait" });
+  });
+
+  test("a key used by another action is rejected", () => {
+    expect(recordKey(key("3", "Digit3", { ctrlKey: true, altKey: true }), "template:feature", DEFAULT_BINDINGS, "mac")).toEqual({
+      type: "reject",
+      conflict: { kind: "internal", detail: "template:test" },
+    });
+  });
+
+  test("a free combination is set", () => {
+    expect(recordKey(key("9", "Digit9", { ctrlKey: true, altKey: true }), "palette", DEFAULT_BINDINGS, "mac")).toEqual({
+      type: "set",
+      accelerator: "Control+Alt+Digit9",
+    });
+  });
 });

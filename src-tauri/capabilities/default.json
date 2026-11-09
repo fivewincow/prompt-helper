@@ -19,6 +19,9 @@
     "opener:allow-open-url",
     "autostart:allow-enable",
     "autostart:allow-disable",
-    "autostart:allow-is-enabled"
+    "autostart:allow-is-enabled",
+    "core:window:allow-destroy",
+    "opener:allow-default-urls",
+    "core:app:allow-default-window-icon"
   ]
 }

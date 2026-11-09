@@ -21,6 +21,8 @@
   tab-size: 2;
   border: 0;
   overflow-y: auto;
+  /* Same gutter on both layers, so always-visible scrollbars cannot change one layer's wrap width. */
+  scrollbar-gutter: stable;
 }
 
 .hl-backdrop {

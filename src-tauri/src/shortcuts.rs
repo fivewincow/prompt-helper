@@ -1,7 +1,7 @@
 //! Registers the global hotkeys the TS side asks for and forwards presses to the overlay window.
 
 use serde::{Deserialize, Serialize};
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 use crate::focus;
@@ -27,12 +27,6 @@ struct ShortcutTriggered {
     action_id: String,
 }
 
-fn overlay_visible(app: &AppHandle) -> bool {
-    app.get_webview_window("overlay")
-        .and_then(|w| w.is_visible().ok())
-        .unwrap_or(false)
-}
-
 /// Replaces every registration with `bindings`. Returns the ones the OS refused
 /// (bad accelerator string, or the keys are taken by another app).
 #[tauri::command]
@@ -46,11 +40,8 @@ pub fn set_shortcuts(app: AppHandle, bindings: Vec<Binding>) -> Vec<Registration
             if event.state() != ShortcutState::Pressed {
                 return;
             }
-            // Remember where the user was typing, unless our overlay is already up:
-            // then the target was remembered when it opened, and the front app is the overlay.
-            if !overlay_visible(app) {
-                focus::remember(app);
-            }
+            // Remember where the user was typing (kept as is while our overlay is up).
+            focus::remember(app);
             let _ = app.emit_to(
                 "overlay",
                 "shortcut-triggered",

@@ -5,6 +5,7 @@
 import { bindingsToRegister, planAction, planPhrase } from "../core/actions";
 import { detectPlatform } from "../core/hotkeys";
 import { copiedOnlyMessage, fellBackMessage, modeChangedMessage } from "../core/messages";
+import { mergeWithDefaults } from "../core/data";
 import { todayString } from "../core/render";
 import { pushRecent } from "../core/search";
 import type { AppData, ItemRef, Mode } from "../core/types";
@@ -21,7 +22,7 @@ import {
   showOverlay,
   showToast,
 } from "../bridge/commands";
-import { emitRegistrationResult, onDataChanged, onRecording, onShortcut } from "../bridge/events";
+import { emitRegistrationResult, onDataChanged, onEditorClosed, onRecording, onShortcut } from "../bridge/events";
 import { loadAppData, saveAppData } from "../bridge/store";
 import { enable as enableAutostart } from "@tauri-apps/plugin-autostart";
 import { overlayStore } from "../overlay/overlayStore";
@@ -128,8 +129,8 @@ export async function handleAction(actionId: string): Promise<void> {
 async function choosePaletteItem(ref: ItemRef): Promise<void> {
   const today = todayString(new Date());
   if (ref.kind === "phrase") {
+    // paste_text brings the user's app back and then hides the overlay (see paste.rs).
     const plan = planPhrase(ref.id, data, today);
-    await hideOverlay();
     if (plan.kind === "paste") await pasteAndRecord(plan.text, plan.ref);
     return;
   }
@@ -142,7 +143,6 @@ async function choosePaletteItem(ref: ItemRef): Promise<void> {
     overlayStore.dispatchFill({ type: "open", templateId: plan.templateId, title: plan.title, text: plan.text });
     await showOverlay("fill");
   } else if (plan.kind === "paste") {
-    await hideOverlay();
     await pasteAndRecord(plan.text, plan.ref);
   }
 }
@@ -159,6 +159,16 @@ function primaryKey(letter: string) {
   };
 }
 
+/** Runs a startup step; a failure is reported instead of stopping the rest of startup. */
+async function safely(label: string, step: () => Promise<void>): Promise<void> {
+  try {
+    await step();
+  } catch (e) {
+    console.error(label, e);
+    void showToast(`${label}에 실패했어요`).catch(() => {});
+  }
+}
+
 /** First launch: turn on launch-at-login (the default) and explain the permission if missing. */
 async function firstRunSetup(): Promise<void> {
   // Dev builds (`tauri dev`) would register the debug binary, which cannot start without the
@@ -171,22 +181,27 @@ async function firstRunSetup(): Promise<void> {
 
 export async function startController(): Promise<void> {
   overlayStore.setPlatform(platform);
+  // Both Rust commands activate the user's app first and then hide the overlay.
   overlayStore.onFillEffect(async (effect, closing) => {
-    await hideOverlay();
     if (effect.type === "paste") await pasteAndRecord(effect.text, { kind: "template", id: closing.templateId });
     else await restoreFocus();
   });
   overlayStore.onPaletteEvent(async (e) => {
     if (e.type === "choose") return choosePaletteItem(e.ref);
-    await hideOverlay();
     // Escape returns to where the user was; a click elsewhere already moved focus there.
     if (e.reason === "escape") await restoreFocus();
+    else await hideOverlay();
   });
-  const loaded = await loadAppData();
+  let loaded: Awaited<ReturnType<typeof loadAppData>>;
+  try {
+    loaded = await loadAppData();
+  } catch (e) {
+    console.error("could not load data; starting from defaults", e);
+    loaded = { data: mergeWithDefaults(null), recovered: false, firstRun: false };
+  }
   data = loaded.data;
-  await registerShortcuts();
-  await refreshTray();
-  if (loaded.firstRun) await firstRunSetup();
+  // Listeners first: this is a menu-bar-only app, so if a later step failed and nothing
+  // were listening, it would be running but impossible to use or even quit.
   await onShortcut((actionId) => void handleAction(actionId));
   await onDataChanged(async ({ source }) => {
     if (source !== "editor") return;
@@ -195,7 +210,20 @@ export async function startController(): Promise<void> {
     await refreshTray();
   });
   // While the editor records a hotkey, our own hotkeys would swallow the keys; pause them.
-  await onRecording((active) => void (active ? setShortcuts([]) : registerShortcuts()));
+  // If the editor closes before recording ends, resume them anyway.
+  let paused = false;
+  await onRecording((active) => {
+    paused = active;
+    void (active ? setShortcuts([]) : registerShortcuts());
+  });
+  await onEditorClosed(() => {
+    if (!paused) return;
+    paused = false;
+    void registerShortcuts();
+  });
+  await safely("단축키 등록", registerShortcuts);
+  await safely("메뉴바 메뉴", refreshTray);
+  if (loaded.firstRun) await safely("처음 실행 설정", firstRunSetup);
   // Pick up a permission granted in System Settings without restarting the app.
   setInterval(() => {
     if (accessibilityOk) return;

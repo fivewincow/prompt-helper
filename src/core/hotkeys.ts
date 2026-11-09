@@ -145,3 +145,28 @@ export function detectPlatform(userAgent: string): Platform {
 export function isPrimaryMod(e: { metaKey: boolean; ctrlKey: boolean }, platform: Platform): boolean {
   return platform === "mac" ? e.metaKey : e.ctrlKey;
 }
+
+export type RecordResult =
+  | { type: "cancel" }
+  | { type: "clear" }
+  | { type: "wait" }
+  | { type: "reject"; conflict: Conflict }
+  | { type: "set"; accelerator: string };
+
+/**
+ * One key press while recording a hotkey. A key already bound to another action is refused,
+ * because two actions on one key would make one of them unreachable.
+ */
+export function recordKey(
+  e: { key: string; code: string; ctrlKey: boolean; altKey: boolean; shiftKey: boolean; metaKey: boolean },
+  action: ActionId,
+  bindings: Settings["bindings"],
+  platform: Platform,
+): RecordResult {
+  if (e.key === "Escape") return { type: "cancel" };
+  if (e.key === "Backspace" || e.key === "Delete") return { type: "clear" };
+  const acc = acceleratorFromKeyEvent(e);
+  if (!acc) return { type: "wait" };
+  const internal = findConflicts(acc, action, bindings, [], platform).find((c) => c.kind === "internal");
+  return internal ? { type: "reject", conflict: internal } : { type: "set", accelerator: acc };
+}

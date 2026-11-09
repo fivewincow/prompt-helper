@@ -1,8 +1,8 @@
-import { useState, type KeyboardEvent } from "react";
+import { useEffect, useState } from "react";
 import type { RegistrationFailure } from "../bridge/commands";
 import { emitRecording } from "../bridge/events";
 import { actionLabel } from "../core/editing";
-import { acceleratorFromKeyEvent, findConflicts, formatAccelerator, type Conflict } from "../core/hotkeys";
+import { findConflicts, formatAccelerator, recordKey, type Conflict } from "../core/hotkeys";
 import type { ActionId, AppData, Platform } from "../core/types";
 
 interface Props {
@@ -33,32 +33,31 @@ export function HotkeyRecorder({ action, data, platform, systemShortcuts, failur
   const [rejected, setRejected] = useState<string | null>(null);
   const value = data.settings.bindings[action] ?? null;
 
-  const stop = () => {
-    setRecording(false);
-    void emitRecording(false);
-  };
-
-  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+  // While recording, the controller has paused every global hotkey. Listen on the window,
+  // not the button: WebKit does not focus a button on click, so its own keydown never fires.
+  // The cleanup always ends recording, so hotkeys come back even if this view goes away.
+  useEffect(() => {
     if (!recording) return;
-    e.preventDefault();
-    if (e.key === "Escape") return stop();
-    if (e.key === "Backspace" || e.key === "Delete") {
-      onChange(null);
-      setRejected(null);
-      return stop();
-    }
-    const acc = acceleratorFromKeyEvent(e);
-    if (!acc) return; // still waiting for a combination with ⌃, ⌥ or ⌘
-    const internal = findConflicts(acc, action, data.settings.bindings, [], platform).find((c) => c.kind === "internal");
-    if (internal) {
-      // Two actions on one key would make one of them unreachable: refuse to save.
-      setRejected(conflictMessage(internal, data, platform));
-      return stop();
-    }
-    setRejected(null);
-    onChange(acc);
-    stop();
-  };
+    const onKey = (e: KeyboardEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const r = recordKey(e, action, data.settings.bindings, platform);
+      if (r.type === "wait") return;
+      if (r.type === "clear") onChange(null);
+      if (r.type === "set") onChange(r.accelerator);
+      setRejected(r.type === "reject" ? conflictMessage(r.conflict, data, platform) : null);
+      setRecording(false);
+    };
+    const stop = () => setRecording(false);
+    window.addEventListener("keydown", onKey, true);
+    window.addEventListener("blur", stop);
+    void emitRecording(true);
+    return () => {
+      window.removeEventListener("keydown", onKey, true);
+      window.removeEventListener("blur", stop);
+      void emitRecording(false);
+    };
+  }, [recording, action, data, platform, onChange]);
 
   const warnings = value
     ? findConflicts(value, action, data.settings.bindings, systemShortcuts, platform)
@@ -74,12 +73,9 @@ export function HotkeyRecorder({ action, data, platform, systemShortcuts, failur
         type="button"
         className={recording ? "key recording" : "key"}
         onClick={() => {
-          setRecording(true);
           setRejected(null);
-          void emitRecording(true);
+          setRecording((r) => !r);
         }}
-        onBlur={() => recording && stop()}
-        onKeyDown={onKeyDown}
       >
         {recording ? "키를 누르세요…" : value ? formatAccelerator(value, platform) : "없음"}
       </button>

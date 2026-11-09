@@ -2,7 +2,7 @@ import { DEFAULT_PHRASES } from "./defaults/phrases";
 import { DEFAULT_TEMPLATES } from "./defaults/templates";
 import { DEFAULT_BINDINGS } from "./hotkeys";
 import { MODES } from "./modes";
-import type { AppData, Bodies, Phrase, Settings, Template } from "./types";
+import { PHRASE_CATEGORIES, type AppData, type Bodies, type ItemRef, type Mode, type Phrase, type Settings, type Template } from "./types";
 
 /*
  * data.json stores only what differs from the built-in defaults, so that shipping new
@@ -32,27 +32,82 @@ export function defaultSettings(): Settings {
   return { mode: "claude", insertMode: "fill", launchAtLogin: true, bindings: { ...DEFAULT_BINDINGS }, recent: [] };
 }
 
-function applyOverride(t: Template, o: TemplateOverride | undefined): Template {
-  if (!o) return { ...t, bodies: { ...t.bodies } };
+const isRecord = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
+const isMode = (v: unknown): v is Mode => typeof v === "string" && (MODES as readonly string[]).includes(v);
+
+/*
+ * data.json may be hand-edited or written by another version, so every field is checked on
+ * the way in: a bad value falls back to its default on its own instead of breaking startup.
+ */
+function sanitizeSettings(raw: unknown): Settings {
+  const base = defaultSettings();
+  const s = isRecord(raw) ? raw : {};
+  const bindings = { ...base.bindings };
+  if (isRecord(s.bindings))
+    for (const [k, v] of Object.entries(s.bindings)) if (typeof v === "string" || v === null) (bindings as Record<string, string | null>)[k] = v;
+  const recent = Array.isArray(s.recent)
+    ? s.recent.filter(
+        (r): r is ItemRef => isRecord(r) && (r.kind === "template" || r.kind === "phrase") && typeof r.id === "string",
+      )
+    : [];
+  return {
+    mode: isMode(s.mode) ? s.mode : base.mode,
+    insertMode: s.insertMode === "fill" || s.insertMode === "direct" ? s.insertMode : base.insertMode,
+    launchAtLogin: typeof s.launchAtLogin === "boolean" ? s.launchAtLogin : base.launchAtLogin,
+    bindings,
+    recent,
+  };
+}
+
+function isBodies(v: unknown): v is Bodies {
+  return isRecord(v) && MODES.every((m) => typeof v[m] === "string");
+}
+
+function isTemplate(v: unknown): v is Template {
+  return (
+    isRecord(v) &&
+    typeof v.id === "string" &&
+    typeof v.name === "string" &&
+    typeof v.hidden === "boolean" &&
+    typeof v.order === "number" &&
+    isBodies(v.bodies)
+  );
+}
+
+function isPhrase(v: unknown): v is Phrase {
+  return (
+    isRecord(v) &&
+    typeof v.id === "string" &&
+    typeof v.text === "string" &&
+    typeof v.order === "number" &&
+    (PHRASE_CATEGORIES as readonly unknown[]).includes(v.category) &&
+    (v.recommendedModes === "all" || (Array.isArray(v.recommendedModes) && v.recommendedModes.every(isMode)))
+  );
+}
+
+function applyOverride(t: Template, raw: unknown): Template {
+  if (!isRecord(raw)) return { ...t, bodies: { ...t.bodies } };
+  const bodies = { ...t.bodies };
+  if (isRecord(raw.bodies)) for (const m of MODES) if (typeof raw.bodies[m] === "string") bodies[m] = raw.bodies[m] as string;
   return {
     ...t,
-    name: o.name ?? t.name,
-    hidden: o.hidden ?? t.hidden,
-    order: o.order ?? t.order,
-    bodies: { ...t.bodies, ...o.bodies },
+    name: typeof raw.name === "string" ? raw.name : t.name,
+    hidden: typeof raw.hidden === "boolean" ? raw.hidden : t.hidden,
+    order: typeof raw.order === "number" ? raw.order : t.order,
+    bodies,
   };
 }
 
 const byOrder = (a: Template, b: Template) => a.order - b.order;
 
 export function mergeWithDefaults(stored: StoredData | null, defaults: Defaults = DEFAULTS): AppData {
-  const base = defaultSettings();
-  const s = stored?.settings ?? {};
-  const settings: Settings = { ...base, ...s, bindings: { ...base.bindings, ...s.bindings } };
-  const builtIns = defaults.templates.map((t) => applyOverride(t, stored?.templateOverrides[t.id]));
-  const customs = (stored?.customTemplates ?? []).map((t) => applyOverride(t, undefined));
-  const phrases = (stored?.phrases ?? defaults.phrases).map((p) => ({ ...p }));
-  return { settings, templates: [...builtIns, ...customs].sort(byOrder), phrases };
+  const overrides: Record<string, unknown> = isRecord(stored?.templateOverrides) ? stored.templateOverrides : {};
+  const builtIns = defaults.templates.map((t) => applyOverride(t, overrides[t.id]));
+  const customs = (Array.isArray(stored?.customTemplates) ? stored.customTemplates : [])
+    .filter(isTemplate)
+    .map((t) => ({ ...t, builtIn: false, bodies: { ...t.bodies } }));
+  const phrases = (Array.isArray(stored?.phrases) ? stored.phrases.filter(isPhrase) : defaults.phrases).map((p) => ({ ...p }));
+  return { settings: sanitizeSettings(stored?.settings), templates: [...builtIns, ...customs].sort(byOrder), phrases };
 }
 
 function diffTemplate(t: Template, d: Template): TemplateOverride | null {
@@ -106,7 +161,8 @@ export function toStored(data: AppData, defaults: Defaults = DEFAULTS): StoredDa
 export function resetTemplate(data: AppData, id: string, defaults: Defaults = DEFAULTS): AppData {
   const d = defaults.templates.find((t) => t.id === id);
   if (!d) return data;
-  const templates = data.templates.map((t) => (t.id === id ? applyOverride(d, undefined) : t)).sort(byOrder);
+  // Restore the content (name, bodies, hidden) but keep the position the user gave it.
+  const templates = data.templates.map((t) => (t.id === id ? { ...applyOverride(d, undefined), order: t.order } : t)).sort(byOrder);
   return { ...data, templates };
 }
 
