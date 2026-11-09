@@ -1,0 +1,285 @@
+.editor {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor.loading,
+.placeholder-tab {
+  padding: 24px;
+  color: var(--text-dim);
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  padding: 8px 12px;
+  background: var(--bg-elev);
+  border-bottom: 1px solid var(--border);
+}
+
+.tab,
+.mode,
+.btn,
+.link,
+.tpl,
+.key,
+.order button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.tab {
+  padding: 3px 12px;
+  border-radius: 6px;
+  color: var(--text-dim);
+}
+
+.tab.on {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Three columns as in mockups/editor.html: list | editor | guide. */
+.templates {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 200px 1fr 240px;
+}
+
+.tpl-list {
+  border-right: 1px solid var(--border);
+  padding: 8px 0;
+  overflow-y: auto;
+}
+
+.tpl-list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.group {
+  color: var(--text-faint);
+  font-size: 11px;
+  padding: 8px 14px 3px;
+}
+
+.tpl {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 4px 14px;
+  text-align: left;
+}
+
+.tpl.on {
+  background: var(--bg-hover);
+}
+
+.tpl-name.hidden {
+  color: var(--text-faint);
+  text-decoration: line-through;
+}
+
+.kbd {
+  color: var(--text-faint);
+  font: 11px var(--font-mono);
+}
+
+.tpl-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+}
+
+.link {
+  color: var(--accent-soft);
+  font-size: 12px;
+  padding: 0;
+}
+
+.order button {
+  color: var(--text-dim);
+  padding: 0 4px;
+}
+
+.order button:disabled {
+  color: var(--border-strong);
+  cursor: default;
+}
+
+.tpl-main {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  min-width: 0;
+}
+
+.tpl-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tpl-name-input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-input);
+  color: var(--text);
+  font: inherit;
+}
+
+.modes {
+  display: flex;
+  gap: 6px;
+}
+
+.mode {
+  position: relative;
+  padding: 2px 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 14px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.mode.on {
+  border-color: var(--accent-soft);
+  color: var(--accent-soft);
+  background: rgba(143, 184, 255, 0.08);
+}
+
+.empty-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--warn);
+}
+
+.note {
+  margin: 0;
+  color: var(--text-faint);
+  font-size: 12px;
+}
+
+.tpl-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.label {
+  color: var(--text-dim);
+}
+
+.btn {
+  padding: 2px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.btn.danger {
+  color: var(--danger);
+}
+
+.confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--warn);
+}
+
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-dim);
+}
+
+.hotkey {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.key {
+  min-width: 64px;
+  padding: 2px 10px;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: var(--bg-hover);
+  font-family: var(--font-mono);
+}
+
+.key.recording {
+  border-color: var(--accent-soft);
+  color: var(--accent-soft);
+}
+
+.hint {
+  color: var(--text-faint);
+  font-size: 11.5px;
+}
+
+.warn {
+  color: var(--warn);
+  font-size: 12px;
+}
+
+.guide {
+  border-left: 1px solid var(--border);
+  background: #272a30;
+  padding: 12px 14px;
+  overflow-y: auto;
+  font-size: 12px;
+}
+
+.guide h4 {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  color: #fff;
+}
+
+.guide-sec {
+  color: var(--accent-soft);
+  font-size: 11px;
+  margin-top: 10px;
+}
+
+.guide p {
+  margin: 3px 0;
+  color: #c4c7cf;
+}
+
+.guide .ok {
+  color: var(--fill);
+}
+
+.guide .no {
+  color: var(--danger);
+}
+
+.guide .link {
+  text-align: left;
+  word-break: break-all;
+}

@@ -21,7 +21,7 @@ import {
   showOverlay,
   showToast,
 } from "../bridge/commands";
-import { emitRegistrationResult, onDataChanged, onShortcut } from "../bridge/events";
+import { emitRegistrationResult, onDataChanged, onRecording, onShortcut } from "../bridge/events";
 import { loadAppData, saveAppData } from "../bridge/store";
 import { overlayStore } from "../overlay/overlayStore";
 import { syncTray } from "./tray";
@@ -181,6 +181,8 @@ export async function startController(): Promise<void> {
     await registerShortcuts();
     await refreshTray();
   });
+  // While the editor records a hotkey, our own hotkeys would swallow the keys; pause them.
+  await onRecording((active) => void (active ? setShortcuts([]) : registerShortcuts()));
   // Pick up a permission granted in System Settings without restarting the app.
   setInterval(() => {
     if (accessibilityOk) return;

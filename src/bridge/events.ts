@@ -8,6 +8,7 @@ export const EVENTS = {
   registrationResult: "registration-result",
   toast: "toast-message",
   editorTab: "editor-tab",
+  recording: "hotkey-recording",
 } as const;
 
 export type DataSource = "controller" | "editor";
@@ -29,3 +30,8 @@ export const emitRegistrationResult = (failures: RegistrationFailure[]) =>
 export const onToastMessage = (cb: (message: string) => void) => listen<string>(EVENTS.toast, (e) => cb(e.payload));
 
 export const onEditorTab = (cb: (tab: EditorTab) => void) => listen<EditorTab>(EVENTS.editorTab, (e) => cb(e.payload));
+
+/** The editor is recording a hotkey: the controller pauses all hotkeys so the keys reach the recorder. */
+export const emitRecording = (active: boolean) => emit(EVENTS.recording, active);
+
+export const onRecording = (cb: (active: boolean) => void) => listen<boolean>(EVENTS.recording, (e) => cb(e.payload));

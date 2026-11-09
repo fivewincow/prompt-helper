@@ -117,16 +117,19 @@ pub async fn restore_focus(state: State<'_, RememberedTarget>) -> Result<(), Str
 }
 
 /// Opens the editor window, or brings it to the front if it is already open.
-/// `tab` selects the starting tab (wired up in Task 15).
+/// `tab` picks the starting tab: through the URL fragment for a new window (its page is not
+/// listening yet), through the `editor-tab` event for an open one.
 #[tauri::command]
 pub fn open_editor(app: AppHandle, tab: Option<String>) -> Result<(), String> {
-    let _ = tab;
+    let tab = tab.unwrap_or_else(|| "templates".into());
     if let Some(w) = app.get_webview_window("editor") {
         let _ = w.unminimize();
         w.show().map_err(|e| e.to_string())?;
-        return w.set_focus().map_err(|e| e.to_string());
+        w.set_focus().map_err(|e| e.to_string())?;
+        return w.emit("editor-tab", &tab).map_err(|e| e.to_string());
     }
-    let w = WebviewWindowBuilder::new(&app, "editor", WebviewUrl::App("editor.html".into()))
+    let url = format!("editor.html#{}", encode_fragment(&tab));
+    let w = WebviewWindowBuilder::new(&app, "editor", WebviewUrl::App(url.into()))
         .title("Prompt Helper")
         .inner_size(980.0, 640.0)
         .min_inner_size(760.0, 480.0)
