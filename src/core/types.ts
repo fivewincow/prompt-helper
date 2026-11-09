@@ -67,3 +67,9 @@ export interface GuideEntry {
   tips: Partial<Record<Mode | "all", string>>;
   sources: { claude: string } & Partial<Record<"codex" | "gemini", string>>;
 }
+
+/** One hotkey registration handed to Rust. */
+export interface Binding {
+  actionId: ActionId;
+  accelerator: string;
+}

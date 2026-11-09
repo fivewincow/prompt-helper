@@ -3,6 +3,8 @@
 //! Rust only bridges OS features (hotkeys, clipboard, key simulation, focus, files).
 //! All app logic lives in the TypeScript front end.
 
+mod storage;
+
 #[cfg(target_os = "macos")]
 use tauri::menu::{Menu, PredefinedMenuItem, Submenu};
 #[cfg(target_os = "macos")]
@@ -31,6 +33,11 @@ pub fn run() {
     let builder = builder.menu(build_app_menu);
 
     builder
+        .invoke_handler(tauri::generate_handler![
+            storage::load_data,
+            storage::save_data,
+            storage::backup_data,
+        ])
         .setup(|app| {
             // Accessory policy: no Dock icon and no app switcher entry, like other menu bar apps.
             #[cfg(target_os = "macos")]
