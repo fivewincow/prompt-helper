@@ -3,9 +3,14 @@
 //! Rust only bridges OS features (hotkeys, clipboard, key simulation, focus, files).
 //! All app logic lives in the TypeScript front end.
 
+mod focus;
+mod paste;
 mod permissions;
+mod shortcuts;
 mod storage;
 mod system_shortcuts;
+
+use std::sync::Mutex;
 
 #[cfg(target_os = "macos")]
 use tauri::menu::{Menu, PredefinedMenuItem, Submenu};
@@ -35,6 +40,7 @@ pub fn run() {
     let builder = builder.menu(build_app_menu);
 
     builder
+        .manage(focus::RememberedTarget(Mutex::new(None)))
         .invoke_handler(tauri::generate_handler![
             storage::load_data,
             storage::save_data,
@@ -42,11 +48,17 @@ pub fn run() {
             system_shortcuts::read_system_shortcuts,
             permissions::check_accessibility,
             permissions::open_accessibility_settings,
+            focus::remember_frontmost,
+            paste::paste_text,
+            shortcuts::set_shortcuts,
         ])
         .setup(|app| {
             // Accessory policy: no Dock icon and no app switcher entry, like other menu bar apps.
             #[cfg(target_os = "macos")]
             app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+            // Tracks the last outside foreground window so tray clicks still know the target.
+            #[cfg(target_os = "windows")]
+            focus::install_tracking();
             let _ = app;
             Ok(())
         })
