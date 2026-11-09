@@ -27,7 +27,10 @@ pub fn backup_file(dir: &Path, name: &str, now_secs: u64) -> std::io::Result<Opt
         return Ok(None);
     }
     let path = Path::new(name);
-    let stem = path.file_stem().map(|s| s.to_string_lossy().into_owned()).unwrap_or_default();
+    let stem = path
+        .file_stem()
+        .map(|s| s.to_string_lossy().into_owned())
+        .unwrap_or_default();
     let ext = path
         .extension()
         .map(|e| format!(".{}", e.to_string_lossy()))
@@ -76,7 +79,10 @@ mod tests {
 
     /// A fresh, unique scratch folder under the system temp dir.
     fn temp_dir(tag: &str) -> PathBuf {
-        let nanos = SystemTime::now().duration_since(UNIX_EPOCH).unwrap().as_nanos();
+        let nanos = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_nanos();
         let dir = std::env::temp_dir().join(format!("prompt-helper-test-{tag}-{nanos}"));
         fs::create_dir_all(&dir).unwrap();
         dir
@@ -86,7 +92,10 @@ mod tests {
     fn write_atomic_writes_contents_and_leaves_no_temp_file() {
         let dir = temp_dir("write");
         write_atomic(&dir, "data.json", "{\"a\":1}").unwrap();
-        assert_eq!(fs::read_to_string(dir.join("data.json")).unwrap(), "{\"a\":1}");
+        assert_eq!(
+            fs::read_to_string(dir.join("data.json")).unwrap(),
+            "{\"a\":1}"
+        );
         assert!(!dir.join("data.json.tmp").exists());
     }
 
@@ -111,6 +120,9 @@ mod tests {
         let moved = backup_file(&dir, "data.json", 123).unwrap();
         assert_eq!(moved, Some(dir.join("data.corrupt-123.json")));
         assert!(!dir.join("data.json").exists());
-        assert_eq!(fs::read_to_string(dir.join("data.corrupt-123.json")).unwrap(), "{broken");
+        assert_eq!(
+            fs::read_to_string(dir.join("data.corrupt-123.json")).unwrap(),
+            "{broken"
+        );
     }
 }
