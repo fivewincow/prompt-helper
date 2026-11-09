@@ -1,0 +1,115 @@
+<style>
+  .stage { position:relative; background:#1e1f24; border-radius:8px; min-height:380px; overflow:hidden; font:12.5px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; }
+  .stage .termtxt { color:#5d616b; font-family:ui-monospace, Menlo, monospace; padding:12px 14px; white-space:pre; }
+  .dim { position:absolute; inset:0; background:rgba(0,0,0,.35); }
+  .pal { position:absolute; left:50%; top:22px; transform:translateX(-50%); width:88%; background:#2b2d33; color:#e4e6eb; border:1px solid #444852; border-radius:10px; box-shadow:0 10px 30px rgba(0,0,0,.5); }
+  .pal .search { padding:9px 12px; border-bottom:1px solid #3d4049; display:flex; justify-content:space-between; }
+  .pal .search .q { color:#fff; }
+  .pal .search .mode { color:#8fb8ff; font-size:11px; }
+  .pal .grp { color:#80848f; font-size:10.5px; padding:6px 12px 2px; letter-spacing:.02em; }
+  .pal .it { padding:4px 12px; display:flex; justify-content:space-between; }
+  .pal .it.sel { background:#3b5bdb; color:#fff; border-radius:5px; margin:0 6px; padding:4px 6px; }
+  .pal .kbd { color:#80848f; font-size:11px; }
+  .pal .it.sel .kbd { color:#dbe4ff; }
+  .pal .foot { border-top:1px solid #3d4049; color:#80848f; font-size:10.5px; padding:6px 12px; }
+  .menubar { background:#e9e9ec; color:#222; height:24px; display:flex; justify-content:flex-end; align-items:center; gap:14px; padding:0 12px; font-size:12px; }
+  .menubar .me { background:#cfd3dc; border-radius:4px; padding:1px 6px; font-weight:600; }
+  .menu { position:absolute; right:40px; top:26px; width:200px; background:#f4f4f6; color:#222; border:1px solid #c9c9cf; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.35); padding:5px 0; font-size:12.5px; }
+  .menu .r { padding:3px 12px; display:flex; justify-content:space-between; }
+  .menu .r.hl { background:#3b5bdb; color:#fff; }
+  .menu .sep { border-top:1px solid #d5d5db; margin:4px 0; }
+  .menu .lbl { color:#888; font-size:11px; padding:2px 12px; }
+  .sub { position:absolute; left:calc(100% - 4px); width:235px; background:#f4f4f6; border:1px solid #c9c9cf; border-radius:8px; box-shadow:0 8px 24px rgba(0,0,0,.35); padding:5px 0; }
+  .keys { background:#2b2d33; color:#e4e6eb; margin:14px; border-radius:10px; border:1px solid #444852; }
+  .keys .row { display:flex; justify-content:space-between; padding:7px 12px; border-bottom:1px solid #3a3d45; }
+  .keys .row:last-child { border-bottom:none; }
+  .keys .hd { color:#80848f; font-size:11px; }
+  .kc { background:#40444e; border-radius:4px; padding:0 6px; font-family:ui-monospace, Menlo, monospace; font-size:11.5px; }
+  .note { font-size:13px; color:var(--text-secondary); margin:6px 0 0; }
+  .pc { display:flex; gap:12px; margin-top:8px; font-size:12.5px; }
+  .pc div { flex:1; }
+  .pc .p { color:var(--success); }
+  .pc .c { color:var(--error); }
+  .cards { grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); }
+  .card-image { aspect-ratio:auto !important; display:block !important; }
+  .menu { left:4%; right:auto; width:92%; }
+  .menu .ind { padding-left:24px; }
+</style>
+
+<h2>문구 모음은 어떻게 불러오면 좋을까요?</h2>
+<p class="subtitle">"코드 전에 계획을 먼저 보여줘" 같은 문구를 커서 위치에 넣는 방법이에요. 셋은 함께 쓸 수도 있으니 여러 개 골라도 돼요.</p>
+
+<div class="cards" data-multiselect>
+
+  <div class="card" data-choice="a-palette" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="stage"><div class="termtxt">claude › ## 목표
+로그인에 Google 로그인 추가 — 이유: …
+
+## 완료 조건
+- npm test 실행 후 …
+|</div><div class="dim"></div>
+      <div class="pal">
+        <div class="search"><span class="q">계획▏</span><span class="mode">Claude Code 모드</span></div>
+        <div class="grp">문구 · 진행 방식</div>
+        <div class="it sel"><span>코드 전에 계획을 먼저 보여줘</span><span class="kbd">Enter</span></div>
+        <div class="it"><span>계획만 세우고 멈춰줘</span><span class="kbd"></span></div>
+        <div class="grp">템플릿</div>
+        <div class="it"><span>기능 개발</span><span class="kbd">⌘⌥1</span></div>
+        <div class="it"><span>긴 작업 · 자료 조사</span><span class="kbd">⌘⌥5</span></div>
+        <div class="foot">⌥Space로 열기 · ↑↓ 이동 · Enter 넣기 · Esc 닫기</div>
+      </div>
+    </div></div>
+    <div class="card-body">
+      <h3>A. 검색 팝업</h3>
+      <p class="note">단축키 하나(예: ⌥Space)로 작은 검색창이 떠요. 몇 글자 치면 템플릿과 문구가 함께 검색되고, Enter를 누르면 들어가요.</p>
+      <div class="pc"><div class="p">+ 외울 키가 하나뿐이에요<br>+ 문구가 많아져도 빨라요</div><div class="c">− 무엇을 검색할지는 알아야 해요</div></div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b-menubar" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="stage" style="background:#dfe1e6">
+      <div class="menubar"><span>🔋</span><span class="me">P · CC</span><span>11월 9일 (월) 14:02</span></div>
+      <div class="menu">
+        <div class="lbl">모드</div>
+        <div class="r"><span>✓ Claude Code</span></div>
+        <div class="r"><span>&nbsp;&nbsp; Codex</span></div>
+        <div class="r"><span>&nbsp;&nbsp; Gemini</span></div>
+        <div class="sep"></div>
+        <div class="r"><span>템플릿</span><span>▸</span></div>
+        <div class="r"><span>문구</span><span>▾</span></div>
+        <div class="lbl ind">진행 방식</div>
+        <div class="r ind hl"><span>코드 전에 계획을 먼저 보여줘</span></div>
+        <div class="r ind"><span>나를 먼저 인터뷰해서 빈칸을 채워줘</span></div>
+        <div class="lbl ind">보고 · 검증</div>
+        <div class="r ind"><span>바뀐 파일과 테스트 결과를 보고해줘</span></div>
+        <div class="sep"></div>
+        <div class="r"><span>템플릿 편집…</span></div>
+        <div class="r"><span>설정…</span></div>
+      </div>
+    </div></div>
+    <div class="card-body">
+      <h3>B. 메뉴바 목록</h3>
+      <p class="note">메뉴바 아이콘(모드 전환용으로 어차피 있어요)을 누르면 문구가 분류별로 보여요. 클릭하면 들어가요.</p>
+      <div class="pc"><div class="p">+ 외울 게 없어요<br>+ 어떤 문구가 있는지 훑어보기 좋아요</div><div class="c">− 마우스를 써야 해서 느려요</div></div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c-direct-keys" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="stage">
+      <div class="keys">
+        <div class="row hd"><span>문구</span><span>단축키</span></div>
+        <div class="row"><span>코드 전에 계획을 먼저 보여줘</span><span class="kc">⌃⌥P</span></div>
+        <div class="row"><span>나를 먼저 인터뷰해서 빈칸을 채워줘</span><span class="kc">⌃⌥I</span></div>
+        <div class="row"><span>바뀐 파일과 테스트 결과를 보고해줘</span><span class="kc">⌃⌥R</span></div>
+        <div class="row"><span>범위 밖 수정은 하지 말고 제안만 해줘</span><span class="kc">⌃⌥S</span></div>
+        <div class="row"><span>알아서 판단해서 끝까지 진행해줘</span><span class="kc">⌃⌥G</span></div>
+      </div>
+    </div></div>
+    <div class="card-body">
+      <h3>C. 문구마다 단축키</h3>
+      <p class="note">템플릿처럼 문구에도 단축키를 하나씩 지정해요. 누르면 바로 들어가요.</p>
+      <div class="pc"><div class="p">+ 가장 빨라요<br>+ 자주 쓰는 몇 개에 딱 좋아요</div><div class="c">− 외울 키가 많아져요<br>− 다른 앱 단축키와 겹치기 쉬워요</div></div>
+    </div>
+  </div>
+
+</div>

@@ -1,0 +1,97 @@
+<style>
+  .win { background:#24262b; color:#e1e3e8; border:1px solid #3a3d45; border-radius:10px; overflow:hidden; font:13px/1.5 -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif; box-shadow:0 10px 30px rgba(0,0,0,.35); }
+  .tb { display:flex; align-items:center; gap:8px; background:#2d3036; padding:8px 12px; border-bottom:1px solid #3a3d45; }
+  .dots span { display:inline-block; width:11px; height:11px; border-radius:50%; margin-right:5px; }
+  .tabs { display:flex; gap:4px; margin-left:14px; }
+  .tab { padding:3px 12px; border-radius:6px; color:#a3a7b1; }
+  .tab.on { background:#3b5bdb; color:#fff; }
+  .body { display:grid; grid-template-columns:190px 1fr 230px; min-height:430px; }
+  .side { border-right:1px solid #3a3d45; padding:10px 0; }
+  .side .g { color:#80848f; font-size:11px; padding:8px 14px 3px; }
+  .side .i { padding:4px 14px; display:flex; justify-content:space-between; }
+  .side .i.on { background:#33363d; }
+  .side .kc { color:#80848f; font-size:11px; font-family:ui-monospace, Menlo, monospace; }
+  .side .add { color:#8fb8ff; padding:10px 14px; font-size:12px; }
+  .main { padding:12px 16px; }
+  .modes { display:flex; gap:6px; margin-bottom:10px; }
+  .mode { border:1px solid #444852; border-radius:14px; padding:2px 11px; font-size:12px; color:#a3a7b1; }
+  .mode.on { border-color:#8fb8ff; color:#8fb8ff; background:rgba(143,184,255,.08); }
+  .ed { background:#1b1c20; border:1px solid #3a3d45; border-radius:8px; padding:10px 12px; font:12.5px/1.6 ui-monospace, Menlo, monospace; white-space:pre; color:#d8dae0; }
+  .ed .h { color:#8fb8ff; } .ed .ph { color:#e3b866; } .ed .fill { color:#9be3a8; }
+  .ed .focus { background:rgba(143,184,255,.12); outline:1px dashed #5b7fc7; }
+  .row { display:flex; align-items:center; gap:10px; margin-top:12px; font-size:12.5px; }
+  .key { background:#33363d; border:1px solid #4a4e58; border-radius:6px; padding:2px 10px; font-family:ui-monospace, Menlo, monospace; }
+  .btn { border:1px solid #4a4e58; border-radius:6px; padding:2px 10px; color:#c9ccd3; font-size:12px; }
+  .warn { color:#f0b45a; font-size:12px; }
+  .guide { border-left:1px solid #3a3d45; padding:12px 14px; background:#272a30; }
+  .guide h4 { margin:0 0 6px; font-size:12.5px; color:#fff; }
+  .guide .sec { color:#8fb8ff; font-size:11px; margin-top:10px; }
+  .guide p { margin:3px 0; color:#c4c7cf; font-size:12px; }
+  .guide .src { color:#80848f; font-size:11px; }
+  .guide .ok { color:#9be3a8; } .guide .no { color:#f08c8c; }
+  .legend { font-size:13px; color:var(--text-secondary); margin:12px 0 0; line-height:1.7; }
+  .legend b { color:var(--text-primary); }
+</style>
+
+<h2>템플릿 편집 화면은 이런 모습이면 어떨까요?</h2>
+<p class="subtitle">메뉴바의 "템플릿 편집…"을 누르면 열리는 창이에요. 이상하거나 빠진 부분을 채팅으로 알려주세요.</p>
+
+<div class="win">
+  <div class="tb">
+    <div class="dots"><span style="background:#ff5f57"></span><span style="background:#febc2e"></span><span style="background:#28c840"></span></div>
+    <div class="tabs"><span class="tab on">템플릿</span><span class="tab">문구</span><span class="tab">단축키 · 설정</span></div>
+  </div>
+  <div class="body">
+    <div class="side">
+      <div class="g">기본 템플릿</div>
+      <div class="i"><span>기획 문서</span><span class="kc">⌃⌥1</span></div>
+      <div class="i on"><span>기능 개발</span><span class="kc">⌃⌥2</span></div>
+      <div class="i"><span>테스트</span><span class="kc">⌃⌥3</span></div>
+      <div class="i"><span>버그 수정</span><span class="kc">⌃⌥4</span></div>
+      <div class="i"><span>긴 작업 · 자료 조사</span><span class="kc">⌃⌥5</span></div>
+      <div class="g">내 템플릿</div>
+      <div class="i"><span>게임 밸런스 검토</span><span class="kc">⌃⌥6</span></div>
+      <div class="add">+ 새 템플릿 · 기본 템플릿 복제</div>
+    </div>
+    <div class="main">
+      <div class="modes"><span class="mode on">Claude Code</span><span class="mode">Codex</span><span class="mode">Gemini</span></div>
+<div class="ed"><span class="h">## 목표</span>
+<span class="ph">{무엇을}</span> — 이유: <span class="ph">{왜}</span>
+
+<span class="h">## 참고</span>
+@<span class="ph">{따라할 파일}</span>
+
+<span class="h">## 범위와 제약</span>
+- 포함: <span class="ph">{}</span>
+- 제외: <span class="ph">{}</span>
+
+<span class="focus"><span class="h">## 완료 조건</span>
+- <span class="ph">{관찰 가능한 동작}</span>
+- <span class="ph">{테스트 명령}</span> 실행 후 명령과 결과를 보고해줘</span>
+
+<span class="fill">코드 전에 계획을 먼저 보여줘</span></div>
+      <div class="row"><span>단축키</span><span class="key">⌃⌥2</span><span class="btn">변경</span><span class="btn">기본값으로</span><span class="btn">다른 모드에 복사</span></div>
+      <div class="row"><span class="warn">⚠ ⌃⌥2는 Slack의 단축키와 겹쳐요 (예시)</span></div>
+    </div>
+    <div class="guide">
+      <h4>가이드 · 완료 조건</h4>
+      <p>커서가 있는 섹션의 팁이 여기 보여요.</p>
+      <div class="sec">왜 필요해요?</div>
+      <p>끝나는 기준이 없으면 AI가 어디서 멈출지 몰라요. 세 AI의 공식 문서가 모두 가장 먼저 권하는 항목이에요.</p>
+      <div class="sec">이렇게 끝맺어요</div>
+      <p class="ok">✓ "npm test 실행 후 명령과 결과를 보고해줘"</p>
+      <p class="no">✗ "꼼꼼히 다시 확인해줘"</p>
+      <p>막연한 확인 지시는 최신 Claude에서 과한 검증을 부를 수 있어요.</p>
+      <div class="sec">이 모드에서만</div>
+      <p>테스트 명령이 CLAUDE.md에 있다면 "CLAUDE.md의 테스트 명령"이라고만 써도 돼요.</p>
+      <p class="src">출처: Claude Code best practices</p>
+    </div>
+  </div>
+</div>
+
+<p class="legend">
+<b>왼쪽</b>: 템플릿 목록과 각 단축키예요. 기본 템플릿을 복제해서 내 템플릿을 만들어요.<br>
+<b>가운데</b>: 위쪽 버튼으로 AI 모드를 골라 버전별로 편집해요. 바로 아래에서 단축키를 바꾸면, 겹치는 키가 있을 때 경고가 떠요.<br>
+<b>오른쪽</b>: 커서가 있는 섹션의 가이드예요. 왜 필요한지, 좋은 예와 나쁜 예, 출처를 보여줘요. 앞에서 고른 C 방식대로, 자세한 팁은 여기에만 보여요.<br>
+<b>위쪽 탭</b>: "문구" 탭에서 문구 모음을, "단축키 · 설정" 탭에서 검색 팝업 키(⌥Space)와 모드 전환 키를 관리해요.
+</p>

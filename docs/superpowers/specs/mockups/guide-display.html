@@ -1,0 +1,92 @@
+<style>
+  .term { background:#1e1f24; color:#d8dae0; border-radius:8px; padding:12px 14px; font:12.5px/1.55 ui-monospace, SFMono-Regular, Menlo, monospace; white-space:pre; overflow-x:auto; position:relative; min-height:300px; }
+  .term .bar { color:#7d818c; font-size:11px; margin-bottom:8px; display:block; }
+  .term .h { color:#8fb8ff; }
+  .term .ph { color:#e3b866; }
+  .term .ex { color:#9aa0ab; font-style:italic; }
+  .term .fill { color:#9be3a8; }
+  .term .cur { background:#d8dae0; color:#1e1f24; }
+  .tip { position:absolute; right:10px; bottom:10px; width:210px; white-space:normal; background:#fff8e1; color:#4a3b00; border:1px solid #e9cf74; border-radius:8px; padding:10px 12px; font:12px/1.5 -apple-system, BlinkMacSystemFont, sans-serif; box-shadow:0 4px 14px rgba(0,0,0,.35); }
+  .tip b { display:block; margin-bottom:4px; }
+  .tip .k { color:#8a6d00; font-size:11px; margin-top:6px; display:block; }
+  .note { font-size:13px; color:var(--text-secondary); margin:6px 0 0; }
+  .pc { display:flex; gap:12px; margin-top:8px; font-size:12.5px; }
+  .pc div { flex:1; }
+  .pc .p { color:var(--success); }
+  .pc .c { color:var(--error); }
+  .cards { grid-template-columns:repeat(auto-fit, minmax(300px, 1fr)); }
+</style>
+
+<h2>가이드(시작·끝맺음 팁)는 어디에 보이면 좋을까요?</h2>
+<p class="subtitle">Claude Code 모드에서 "기능 개발" 단축키를 눌렀을 때 입력창에 들어가는 모습이에요. 셋 중 마음에 드는 걸 클릭해 주세요. 섞어도 돼요.</p>
+
+<div class="cards">
+
+  <div class="card" data-choice="a-inline-examples" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="term"><span class="bar">claude ›</span><span class="h">## 목표</span>
+<span class="ph">&lt;무엇을, 왜</span> <span class="ex">예: 로그인에 Google 로그인 추가.
+이유: 가입 중 이탈 줄이기</span><span class="ph">&gt;</span>
+
+<span class="h">## 참고</span>
+<span class="ph">&lt;따라할 코드</span> <span class="ex">예: @src/auth/kakao.ts</span><span class="ph">&gt;</span>
+
+<span class="h">## 범위와 제약</span>
+- 포함: <span class="ph">&lt;</span><span class="ex">예: 실패·취소 상태까지</span><span class="ph">&gt;</span>
+- 제외: <span class="ph">&lt;</span><span class="ex">예: 새 라이브러리 금지</span><span class="ph">&gt;</span>
+
+<span class="h">## 완료 조건</span>
+- <span class="ph">&lt;</span><span class="ex">예: 버튼 → 로그인 → 홈으로 이동</span><span class="ph">&gt;</span>
+- <span class="ph">&lt;테스트 명령&gt;</span> 실행 후 명령과 결과를 보고해줘</div></div>
+    <div class="card-body">
+      <h3>A. 빈칸 속에 예시</h3>
+      <p class="note">팁과 예시가 붙여넣는 글 안에 들어가요. 빈칸을 지우고 내 내용으로 바꿔 쓰는 방식이에요.</p>
+      <div class="pc"><div class="p">+ 쓰는 자리에서 바로 보여요<br>+ 처음 쓸 때 배우기 좋아요</div><div class="c">− 예시를 안 지우고 보낼 수 있어요<br>− 붙여넣는 글이 길어져요</div></div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="b-floating-tip" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="term"><span class="bar">claude ›</span><span class="h">## 목표</span>
+<span class="cur"> </span>
+
+<span class="h">## 참고</span>
+
+
+<span class="h">## 범위와 제약</span>
+- 포함:
+- 제외:
+
+<span class="h">## 완료 조건</span>
+-
+- <span class="ph">&lt;테스트 명령&gt;</span> 실행 후 명령과 결과를 보고해줘
+<div class="tip"><b>목표 쓰는 팁</b>"무엇을 + 왜"를 한두 문장으로 써요.<br><br><b>끝맺음 팁</b>"고쳐줘"처럼 요청하세요. "제안해줄래?"라고 하면 제안만 하고 끝날 수 있어요.<span class="k">Esc로 닫기 · 다음 팁 ⌥→</span></div></div></div>
+    <div class="card-body">
+      <h3>B. 깔끔한 뼈대 + 옆에 팁 카드</h3>
+      <p class="note">붙여넣는 글에는 제목과 빈칸만 들어가요. 팁은 화면 구석에 작은 카드로 잠깐 떠요.</p>
+      <div class="pc"><div class="p">+ 보내는 글이 깔끔해요<br>+ 팁이 실수로 섞이지 않아요</div><div class="c">− 창이 하나 더 떠요<br>− 익숙해지면 끄고 싶을 수 있어요</div></div>
+    </div>
+  </div>
+
+  <div class="card" data-choice="c-short-prefilled" onclick="toggleSelect(this)">
+    <div class="card-image"><div class="term"><span class="bar">claude ›</span><span class="h">## 목표</span>
+<span class="ph">{무엇을}</span> — 이유: <span class="ph">{왜}</span>
+
+<span class="h">## 참고</span>
+@<span class="ph">{따라할 파일}</span>
+
+<span class="h">## 범위와 제약</span>
+- 포함: <span class="ph">{}</span>
+- 제외: <span class="ph">{}</span>
+
+<span class="h">## 완료 조건</span>
+- <span class="ph">{관찰 가능한 동작}</span>
+- <span class="ph">{테스트 명령}</span> 실행 후 명령과 결과를 보고해줘
+
+<span class="fill">코드 전에 계획을 먼저 보여줘</span></div></div>
+    <div class="card-body">
+      <h3>C. 짧은 빈칸 + 추천 끝맺음 미리 채움</h3>
+      <p class="note">빈칸 이름만 짧게 들어가요. 좋은 끝맺음 문장(초록색)은 미리 채워져 있어요. 자세한 팁은 앱의 편집 화면에서만 보여요.</p>
+      <div class="pc"><div class="p">+ 가장 짧고 빨라요<br>+ 좋은 습관이 기본값으로 들어가요</div><div class="c">− 왜 그렇게 쓰는지는 따로 봐야 알아요</div></div>
+    </div>
+  </div>
+
+</div>
