@@ -7,6 +7,49 @@ use tauri::{
 
 use crate::focus::{self, RememberedTarget};
 
+// NSWindowCollectionBehavior bits (AppKit).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+mod behavior {
+    pub const CAN_JOIN_ALL_SPACES: usize = 1 << 0;
+    pub const MOVE_TO_ACTIVE_SPACE: usize = 1 << 1;
+    #[cfg(test)]
+    pub const IGNORES_CYCLE: usize = 1 << 6;
+    pub const FULL_SCREEN_PRIMARY: usize = 1 << 7;
+    pub const FULL_SCREEN_AUXILIARY: usize = 1 << 8;
+    pub const FULL_SCREEN_NONE: usize = 1 << 9;
+}
+use behavior::*;
+
+/// Collection behavior for our popups: on every Space, including the Space of an app in full
+/// screen, so a hotkey pressed there shows the popup there instead of somewhere unseen.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+fn popup_collection_behavior(current: usize) -> usize {
+    (current & !(MOVE_TO_ACTIVE_SPACE | FULL_SCREEN_PRIMARY | FULL_SCREEN_NONE))
+        | CAN_JOIN_ALL_SPACES
+        | FULL_SCREEN_AUXILIARY
+}
+
+/// Lets `window` appear over full-screen apps (see `popup_collection_behavior`).
+#[cfg(target_os = "macos")]
+pub fn join_all_spaces(window: &tauri::WebviewWindow) {
+    use objc2::msg_send;
+    use objc2::runtime::AnyObject;
+    let w = window.clone();
+    // AppKit windows may only be touched on the main thread.
+    let _ = window.run_on_main_thread(move || {
+        let Ok(ptr) = w.ns_window() else { return };
+        let ns = ptr.cast::<AnyObject>();
+        // SAFETY: `ns` is this window's live NSWindow; both selectors take/return NSUInteger.
+        unsafe {
+            let current: usize = msg_send![ns, collectionBehavior];
+            let _: () = msg_send![ns, setCollectionBehavior: popup_collection_behavior(current)];
+        }
+    });
+}
+
+#[cfg(not(target_os = "macos"))]
+pub fn join_all_spaces(_window: &tauri::WebviewWindow) {}
+
 const TOAST_SIZE: (f64, f64) = (320.0, 64.0);
 const TOAST_MARGIN: f64 = 16.0;
 
@@ -60,6 +103,7 @@ pub async fn show_toast(app: AppHandle, message: String) -> Result<(), String> {
         .focusable(false)
         .visible(false)
         .build()
+        .inspect(join_all_spaces)
         .map_err(|e| e.to_string())?,
     };
     if let Some(m) = monitor_under_cursor(&app) {
@@ -181,5 +225,23 @@ mod tests {
     fn encodes_spaces_symbols_and_korean_as_utf8() {
         assert_eq!(encode_fragment("a b:"), "a%20b%3A");
         assert_eq!(encode_fragment("모"), "%EB%AA%A8");
+    }
+
+    #[test]
+    fn popups_join_every_space_including_full_screen_apps() {
+        let b = popup_collection_behavior(0);
+        assert_ne!(b & CAN_JOIN_ALL_SPACES, 0);
+        assert_ne!(b & FULL_SCREEN_AUXILIARY, 0);
+    }
+
+    #[test]
+    fn popup_behavior_drops_flags_that_conflict_and_keeps_the_rest() {
+        // AppKit raises an exception for CanJoinAllSpaces with MoveToActiveSpace, and for
+        // FullScreenAuxiliary with FullScreenPrimary or FullScreenNone.
+        let b = popup_collection_behavior(
+            MOVE_TO_ACTIVE_SPACE | FULL_SCREEN_PRIMARY | FULL_SCREEN_NONE | IGNORES_CYCLE,
+        );
+        assert_eq!(b & (MOVE_TO_ACTIVE_SPACE | FULL_SCREEN_PRIMARY | FULL_SCREEN_NONE), 0);
+        assert_ne!(b & IGNORES_CYCLE, 0);
     }
 }

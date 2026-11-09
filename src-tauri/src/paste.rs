@@ -50,13 +50,24 @@ fn backup(app: &AppHandle) -> ClipboardBackup {
     ClipboardBackup::Empty
 }
 
-fn restore(app: &AppHandle, b: ClipboardBackup) {
+fn restore(app: &AppHandle, b: ClipboardBackup) -> Result<(), String> {
     let clip = app.clipboard();
-    let _ = match b {
+    match b {
         ClipboardBackup::Text(t) => clip.write_text(t),
         ClipboardBackup::Image(img) => clip.write_image(&img),
         ClipboardBackup::Empty => clip.clear(),
-    };
+    }
+    .map_err(|e| e.to_string())
+}
+
+impl std::fmt::Debug for ClipboardBackup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Text(t) => write!(f, "text({} chars)", t.chars().count()),
+            Self::Image(img) => write!(f, "image({}x{})", img.width(), img.height()),
+            Self::Empty => write!(f, "empty"),
+        }
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -140,16 +151,18 @@ pub async fn paste_text(
     // The sleeps below must not run on the main thread or the async runtime's workers.
     tauri::async_runtime::spawn_blocking(move || {
         serialized(|| {
+            let started = Instant::now();
             let original = trusted.then(|| backup(&app));
+            // Dev builds log each step so a failed paste can be traced from the terminal.
+            #[cfg(debug_assertions)]
+            eprintln!("[paste] backup={original:?} target={target:?} trusted={trusted}");
             app.clipboard()
                 .write_text(text)
                 .map_err(|e| e.to_string())?;
             // Bring the user's app forward first, then hide our overlay: Windows only lets a
             // process hand the foreground away while it still holds it. This also runs without
             // the permission, so a manual ⌘V lands in the right app.
-            if let Some(t) = target {
-                focus::activate_and_wait(&t);
-            }
+            let activated = target.map(|t| focus::activate_and_wait(&t));
             app_windows::hide_overlay_window(&app);
             let Some(original) = original else {
                 // No Accessibility permission: leave the text on the clipboard for the user.
@@ -158,7 +171,13 @@ pub async fn paste_text(
             wait_for_modifiers_released();
             let sent = send_paste();
             sleep(Duration::from_millis(RESTORE_DELAY_MS));
-            restore(&app, original);
+            let restored = restore(&app, original);
+            #[cfg(debug_assertions)]
+            eprintln!(
+                "[paste] activated={activated:?} sent={sent:?} restored={restored:?} in {:?}",
+                started.elapsed()
+            );
+            let _ = (activated, restored, started);
             sent.map(|_| PasteOutcome::Pasted)
         })
     })

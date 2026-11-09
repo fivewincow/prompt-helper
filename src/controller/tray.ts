@@ -1,41 +1,17 @@
 /** Renders the menu model as the menu bar (macOS) / tray (Windows) icon and its menu. */
 import { defaultWindowIcon } from "@tauri-apps/api/app";
-import {
-  Menu,
-  type CheckMenuItemOptions,
-  type MenuItemOptions,
-  type PredefinedMenuItemOptions,
-  type SubmenuOptions,
-} from "@tauri-apps/api/menu";
+import { Menu } from "@tauri-apps/api/menu";
 import { TrayIcon } from "@tauri-apps/api/tray";
-import { buildMenuModel, trayTitle, type MenuNode } from "../core/menuModel";
+import { buildMenuModel, trayTitle } from "../core/menuModel";
 import { MODE_INFO } from "../core/modes";
 import type { AppData, Platform } from "../core/types";
+import { toMenuOptions } from "./menuItems";
 
 const TRAY_ID = "main";
 let currentMenu: Menu | null = null;
-
-type ItemOptions = MenuItemOptions | CheckMenuItemOptions | SubmenuOptions | PredefinedMenuItemOptions;
-
-function toOptions(node: MenuNode, onItem: (id: string) => void, withShortcuts: boolean): ItemOptions {
-  switch (node.type) {
-    case "separator":
-      return { item: "Separator" };
-    case "label":
-      return { text: node.text, enabled: false };
-    case "submenu":
-      return { text: node.text, items: node.items.map((n) => toOptions(n, onItem, withShortcuts)) };
-    case "item": {
-      const base: MenuItemOptions = {
-        id: node.id,
-        text: node.text,
-        accelerator: withShortcuts ? node.shortcut : undefined,
-        action: onItem,
-      };
-      return node.checked === undefined ? base : { ...base, checked: node.checked };
-    }
-  }
-}
+// Native item ids must never repeat, not even after the page reloads (see toMenuOptions).
+const SESSION = Date.now().toString(36);
+let builds = 0;
 
 /** Creates the tray icon on first call and updates it afterwards (no duplicates on reload). */
 export async function syncTray(
@@ -45,7 +21,8 @@ export async function syncTray(
   onItem: (id: string) => void,
 ): Promise<void> {
   const model = buildMenuModel(data, platform, accessibilityOk);
-  const build = (withShortcuts: boolean) => Menu.new({ items: model.map((n) => toOptions(n, onItem, withShortcuts)) });
+  const build = (withShortcuts: boolean) =>
+    Menu.new({ items: toMenuOptions(model, `${SESSION}.${++builds}`, onItem, withShortcuts) });
   // A hotkey the native menu cannot parse must not cost the user the whole menu.
   const menu = await build(true).catch(() => build(false));
   const tooltip = `Prompt Helper · ${MODE_INFO[data.settings.mode].label}`;

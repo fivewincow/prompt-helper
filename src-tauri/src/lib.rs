@@ -16,7 +16,7 @@ use std::sync::Mutex;
 #[cfg(target_os = "macos")]
 use tauri::menu::{Menu, PredefinedMenuItem, Submenu};
 #[cfg(target_os = "macos")]
-use tauri::{AppHandle, Runtime};
+use tauri::{AppHandle, Manager, Runtime};
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -70,7 +70,10 @@ pub fn run() {
             // Tracks the last outside foreground window so tray clicks still know the target.
             #[cfg(target_os = "windows")]
             focus::install_tracking();
-            let _ = app;
+            // The fill window and palette must also show over apps in full screen.
+            if let Some(overlay) = app.get_webview_window("overlay") {
+                app_windows::join_all_spaces(&overlay);
+            }
             Ok(())
         })
         .run(tauri::generate_context!())
