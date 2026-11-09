@@ -13,6 +13,15 @@ export interface KeyInput {
   isComposing: boolean;
 }
 
+/** What the fill window keeps of a template the user left without pasting. */
+export interface Draft {
+  text: string;
+  blanks: Range[];
+  selection: Range;
+}
+
+type OpenRequest = { templateId: string; title: string; text: string; draft?: Draft };
+
 export interface FillState {
   templateId: string;
   title: string;
@@ -26,12 +35,16 @@ export interface FillState {
   blanks: Range[];
   selection: Range;
   confirmSubmit: boolean;
-  pendingReplace: { templateId: string; title: string; text: string } | null;
+  pendingReplace: OpenRequest | null;
+  /** Cmd+R on edited text: waiting for Enter (reset to the template) or Escape. */
+  pendingReset: boolean;
+  /** The text came from a draft and the user has not edited it yet. */
+  restored: boolean;
   phraseSearch: boolean;
 }
 
 export type FillEvent =
-  | { type: "open"; templateId: string; title: string; text: string }
+  | ({ type: "open" } & OpenRequest)
   | { type: "edit"; text: string; selection: Range }
   | { type: "select"; selection: Range }
   | { type: "key"; input: KeyInput }
@@ -51,6 +64,11 @@ const none = (state: FillState | null): Result => ({ state, effect: { type: "non
 
 export function remainingBlanks(s: FillState): number {
   return s.blanks.length;
+}
+
+/** The draft to keep when the user leaves `s`; null when nothing was written. */
+export function draftOf(s: FillState): Draft | null {
+  return s.text === s.initial ? null : { text: s.text, blanks: s.blanks, selection: s.selection };
 }
 
 /** Moves blanks through an edit: untouched ones shift, ones the edit overlaps count as filled. */
@@ -76,23 +94,36 @@ function nextBlank(blanks: Range[], from: number, dir: 1 | -1): Range | null {
   return before.length > 0 ? before[before.length - 1] : blanks[blanks.length - 1];
 }
 
-function openFresh(o: { templateId: string; title: string; text: string }): Result {
-  const blanks = findPlaceholders(o.text);
-  const first = blanks[0] ?? { start: o.text.length, end: o.text.length };
+function firstBlank(text: string, blanks: Range[]): Range {
+  return blanks[0] ?? { start: text.length, end: text.length };
+}
+
+/** Opens a template, continuing its draft when there is one. */
+function openFresh(o: OpenRequest): Result {
+  const blanks = o.draft?.blanks ?? findPlaceholders(o.text);
+  const text = o.draft?.text ?? o.text;
+  const selection = o.draft?.selection ?? firstBlank(text, blanks);
   return {
     state: {
       templateId: o.templateId,
       title: o.title,
       initial: o.text,
-      text: o.text,
+      text,
       blanks,
-      selection: first,
+      selection,
       confirmSubmit: false,
       pendingReplace: null,
+      pendingReset: false,
+      restored: o.draft !== undefined,
       phraseSearch: false,
     },
-    effect: { type: "select", range: first },
+    effect: { type: "select", range: selection },
   };
+}
+
+/** Back to the template as written, first blank selected. */
+function resetToTemplate(s: FillState): Result {
+  return openFresh({ templateId: s.templateId, title: s.title, text: s.initial });
 }
 
 function isKey(input: KeyInput, letter: string): boolean {
@@ -109,7 +140,17 @@ function onKey(s: FillState, input: KeyInput, platform: Platform): Result {
     return none(s);
   }
 
+  if (s.pendingReset) {
+    if (input.key === "Enter") return resetToTemplate(s);
+    if (input.key === "Escape") return none({ ...s, pendingReset: false });
+    return none(s);
+  }
+
   const primary = isPrimaryMod(input, platform);
+
+  // Cmd+R: back to the template. Edited text is asked about first; untouched text has
+  // nothing to lose, so it only goes back to the first blank.
+  if (primary && isKey(input, "r")) return draftOf(s) ? none({ ...s, pendingReset: true }) : resetToTemplate(s);
 
   if (input.key === "Tab") {
     const dir = input.shiftKey ? -1 : 1;
@@ -135,13 +176,24 @@ function onKey(s: FillState, input: KeyInput, platform: Platform): Result {
 
 export function fillReducer(s: FillState | null, e: FillEvent, platform: Platform): Result {
   switch (e.type) {
-    case "open":
-      // Never throw away what the user typed: ask first (Enter replaces, Escape keeps writing).
-      if (s && s.text !== s.initial) return none({ ...s, pendingReplace: { templateId: e.templateId, title: e.title, text: e.text } });
-      return openFresh(e);
+    case "open": {
+      const request: OpenRequest = { templateId: e.templateId, title: e.title, text: e.text, draft: e.draft };
+      // The hotkey of the template being written just keeps the writing.
+      if (s && s.templateId === e.templateId && draftOf(s)) return none(s);
+      // Ask before leaving written text (it is kept as a draft): Enter switches, Escape stays.
+      if (s && draftOf(s)) return none({ ...s, pendingReplace: request, pendingReset: false });
+      return openFresh(request);
+    }
     case "edit":
       return none(
-        s && { ...s, text: e.text, blanks: shiftBlanks(s.blanks, s.text, e.text), selection: e.selection, confirmSubmit: false },
+        s && {
+          ...s,
+          text: e.text,
+          blanks: shiftBlanks(s.blanks, s.text, e.text),
+          selection: e.selection,
+          confirmSubmit: false,
+          restored: false,
+        },
       );
     case "select":
       return none(s && { ...s, selection: e.selection });

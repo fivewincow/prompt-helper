@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { fillReducer, remainingBlanks, type FillEvent, type FillState, type KeyInput } from "./fillState";
+import { draftOf, fillReducer, remainingBlanks, type FillEvent, type FillState, type KeyInput } from "./fillState";
 import { findPlaceholders } from "./placeholders";
 
 const k = (key: string, m: Partial<KeyInput> = {}): FillEvent => ({
@@ -139,5 +139,70 @@ describe("blanks are tracked by position (Review I3)", () => {
       { start: 4, end: 7 },
       { start: 8, end: 11 },
     ]);
+  });
+});
+
+describe("drafts", () => {
+  const draft = { text: "## 목표\n로그인 — 이유: {왜}", blanks: [{ start: 16, end: 19 }], selection: { start: 16, end: 19 } };
+
+  test("opening a template with a draft continues where the user left off", () => {
+    const r = fillReducer(null, { type: "open", templateId: "feature", title: "T", text, draft }, "mac");
+    expect(r.state!.text).toBe(draft.text);
+    expect(r.state!.blanks).toEqual(draft.blanks);
+    expect(r.state!.initial).toBe(text);
+    expect(r.state!.restored).toBe(true);
+    expect(r.effect).toEqual({ type: "select", range: draft.selection });
+  });
+
+  test("editing a restored draft hides the restored notice", () => {
+    const r = fillReducer(null, { type: "open", templateId: "feature", title: "T", text, draft }, "mac");
+    const e = fillReducer(r.state, { type: "edit", text: draft.text + "!", selection: { start: 0, end: 0 } }, "mac");
+    expect(e.state!.restored).toBe(false);
+  });
+
+  test("the switch prompt opens the other template with its own draft", () => {
+    const p = fillReducer(editedState, { type: "open", templateId: "bugfix", title: "B", text: "{x}", draft }, "mac");
+    expect(fillReducer(p.state, k("Enter"), "mac").state!.text).toBe(draft.text);
+  });
+
+  test("the hotkey of the template being written keeps the writing", () => {
+    const r = fillReducer(editedState, { type: "open", templateId: "feature", title: "T", text }, "mac");
+    expect(r.state).toBe(editedState);
+    expect(r.effect).toEqual({ type: "none" });
+  });
+
+  test("draftOf keeps edited text and nothing for untouched text", () => {
+    expect(draftOf(editedState)).toEqual({ text: filled, blanks: editedState.blanks, selection: editedState.selection });
+    expect(draftOf(opened.state!)).toBeNull();
+  });
+});
+
+describe("reset to the template (Cmd+R)", () => {
+  test("asks first when the text was edited; Enter resets", () => {
+    const ask = fillReducer(editedState, k("r", { metaKey: true }), "mac");
+    expect(ask.state!.pendingReset).toBe(true);
+    expect(ask.state!.text).toBe(filled);
+    const reset = fillReducer(ask.state, k("Enter"), "mac");
+    expect(reset.state!.text).toBe(text);
+    expect(reset.state!.blanks).toEqual(findPlaceholders(text));
+    expect(reset.state!.pendingReset).toBe(false);
+    expect(reset.effect).toEqual({ type: "select", range: findPlaceholders(text)[0] });
+  });
+
+  test("Escape cancels the reset and keeps the window open", () => {
+    const ask = fillReducer(editedState, k("r", { metaKey: true }), "mac");
+    const kept = fillReducer(ask.state, k("Escape"), "mac");
+    expect(kept.state!.pendingReset).toBe(false);
+    expect(kept.state!.text).toBe(filled);
+  });
+
+  test("untouched text just goes back to the first blank", () => {
+    const r = fillReducer(onSecond.state, k("r", { metaKey: true }), "mac");
+    expect(r.state!.pendingReset).toBe(false);
+    expect(r.effect).toEqual({ type: "select", range: findPlaceholders(text)[0] });
+  });
+
+  test("works with a Korean input source (key is a Hangul letter, code is KeyR)", () => {
+    expect(fillReducer(editedState, k("ㄱ", { metaKey: true, code: "KeyR" }), "mac").state!.pendingReset).toBe(true);
   });
 });

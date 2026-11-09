@@ -3,7 +3,7 @@
  * store (useSyncExternalStore) so the controller, which lives outside React, can drive the UI.
  */
 import { useSyncExternalStore } from "react";
-import { fillReducer, type FillEffect, type FillEvent, type FillState } from "../core/fillState";
+import { draftOf, fillReducer, type Draft, type FillEffect, type FillEvent, type FillState } from "../core/fillState";
 import type { Range } from "../core/placeholders";
 import type { AppData, ItemRef, Platform } from "../core/types";
 
@@ -34,6 +34,11 @@ let state: OverlayState = {
   paletteSeq: 0,
 };
 const listeners = new Set<() => void>();
+/**
+ * Writing left without pasting (Escape, a switch to another template, a paste still running),
+ * per template, while the app runs. Opening that template again continues it.
+ */
+const drafts = new Map<string, Draft>();
 let effectHandler: (effect: FillEffect, closing: FillState) => void = () => {};
 let paletteHandler: (e: PaletteEvent) => void = () => {};
 
@@ -72,7 +77,14 @@ export const overlayStore = {
   },
   dispatchFill(event: FillEvent) {
     const before = state.fill;
-    const { state: fill, effect } = fillReducer(before, event, state.platform);
+    const withDraft: FillEvent =
+      event.type === "open" && !event.draft ? { ...event, draft: drafts.get(event.templateId) } : event;
+    const { state: fill, effect } = fillReducer(before, withDraft, state.platform);
+    if (before && fill?.templateId !== before.templateId) {
+      const draft = draftOf(before);
+      if (draft) drafts.set(before.templateId, draft);
+      else drafts.delete(before.templateId);
+    }
     const select = effect.type === "select";
     set({
       ...state,
@@ -82,6 +94,10 @@ export const overlayStore = {
       selectRange: select ? effect.range : state.selectRange,
     });
     if ((effect.type === "paste" || effect.type === "close") && before) effectHandler(effect, before);
+  },
+  /** Called once a paste went through, so the next open starts from the template again. */
+  dropDraft(templateId: string) {
+    drafts.delete(templateId);
   },
 };
 

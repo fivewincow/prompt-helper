@@ -10,6 +10,11 @@ import { overlayStore, useOverlayStore } from "./overlayStore";
 import { SearchList } from "./SearchList";
 import "./overlay.css";
 
+/** A letter shortcut by character or physical key, so it also works under a Korean input source. */
+function isLetter(input: KeyInput, letter: string): boolean {
+  return input.key.toLowerCase() === letter || input.code === `Key${letter.toUpperCase()}`;
+}
+
 export function toKeyInput(e: KeyboardEvent): KeyInput {
   return {
     key: e.key,
@@ -108,8 +113,8 @@ export function FillView() {
     const handled =
       input.key === "Tab" ||
       input.key === "Escape" ||
-      (primary && (input.key === "Enter" || input.code === "KeyK" || input.key.toLowerCase() === "k")) ||
-      (fill.pendingReplace !== null && input.key === "Enter");
+      (primary && (input.key === "Enter" || isLetter(input, "k") || isLetter(input, "r"))) ||
+      ((fill.pendingReplace !== null || fill.pendingReset) && input.key === "Enter");
     if (!handled) return;
     e.preventDefault();
     overlayStore.dispatchFill({ type: "key", input });
@@ -140,16 +145,22 @@ export function FillView() {
       {fill.phraseSearch && <PhraseSearch />}
       {fill.pendingReplace && (
         <p className="fill-notice">
-          작성 중인 내용을 버리고 '{fill.pendingReplace.title}' 템플릿으로 바꿀까요? Enter 바꾸기 · Esc 계속 작성
+          '{fill.pendingReplace.title}' 템플릿으로 바꿀까요? 지금 내용은 임시저장돼요 · Enter 바꾸기 · Esc 계속 작성
         </p>
       )}
-      {fill.confirmSubmit && !fill.pendingReplace && (
+      {fill.pendingReset && (
+        <p className="fill-notice">원문으로 되돌릴까요? 지금 쓴 내용은 지워져요 · Enter 되돌리기 · Esc 계속 작성</p>
+      )}
+      {fill.restored && !fill.pendingReplace && !fill.pendingReset && (
+        <p className="fill-notice">임시저장된 내용을 이어서 써요 · {mod}R 원문으로</p>
+      )}
+      {fill.confirmSubmit && !fill.pendingReplace && !fill.pendingReset && (
         <p className="fill-notice">
           빈칸 {remainingBlanks(fill)}개가 남았어요 · {mod}Enter를 한 번 더 누르면 그대로 붙여넣어요
         </p>
       )}
       <footer className="fill-hints">
-        Tab 다음 빈칸 · {mod}Enter 붙여넣기 · {mod}K 문구 · Esc 취소
+        Tab 다음 빈칸 · {mod}Enter 붙여넣기 · {mod}K 문구 · {mod}R 원문 · Esc 닫기
       </footer>
     </div>
   );

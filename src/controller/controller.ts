@@ -183,8 +183,11 @@ export async function startController(): Promise<void> {
   overlayStore.setPlatform(platform);
   // Both Rust commands activate the user's app first and then hide the overlay.
   overlayStore.onFillEffect(async (effect, closing) => {
-    if (effect.type === "paste") await pasteAndRecord(effect.text, { kind: "template", id: closing.templateId });
-    else await restoreFocus();
+    if (effect.type === "paste") {
+      await pasteAndRecord(effect.text, { kind: "template", id: closing.templateId });
+      // Only now: if the paste failed, the writing is still there as a draft.
+      overlayStore.dropDraft(closing.templateId);
+    } else await restoreFocus();
   });
   overlayStore.onPaletteEvent(async (e) => {
     if (e.type === "choose") return choosePaletteItem(e.ref);
