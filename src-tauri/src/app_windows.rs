@@ -1,6 +1,11 @@
 //! Creates, places and shows the app's secondary windows.
 
-use tauri::{AppHandle, Emitter, Manager, Monitor, PhysicalPosition, WebviewUrl, WebviewWindowBuilder};
+use tauri::{
+    AppHandle, Emitter, LogicalSize, Manager, Monitor, PhysicalPosition, State, WebviewUrl,
+    WebviewWindowBuilder,
+};
+
+use crate::focus::{self, RememberedTarget};
 
 const TOAST_SIZE: (f64, f64) = (320.0, 64.0);
 const TOAST_MARGIN: f64 = 16.0;
@@ -63,6 +68,52 @@ pub fn show_toast(app: AppHandle, message: String) -> Result<(), String> {
         let _ = window.set_position(PhysicalPosition::new(x, y));
     }
     window.show().map_err(|e| e.to_string())
+}
+
+const PALETTE_SIZE: (f64, f64) = (600.0, 380.0);
+const FILL_SIZE: (f64, f64) = (680.0, 520.0);
+const OVERLAY_TOP: f64 = 120.0;
+
+/// Shows the overlay window as the palette or the fill window: centered horizontally on the
+/// monitor under the mouse, 120pt from the top, and focused so typing goes into it.
+#[tauri::command]
+pub fn show_overlay(app: AppHandle, view: String) -> Result<(), String> {
+    let w = app
+        .get_webview_window("overlay")
+        .ok_or("overlay window is missing")?;
+    let (width, height) = if view == "palette" { PALETTE_SIZE } else { FILL_SIZE };
+    w.set_size(LogicalSize::new(width, height))
+        .map_err(|e| e.to_string())?;
+    if let Some(m) = monitor_under_cursor(&app) {
+        let area = m.work_area();
+        let scale = m.scale_factor();
+        let x = f64::from(area.position.x) + (f64::from(area.size.width) - width * scale) / 2.0;
+        let y = f64::from(area.position.y) + OVERLAY_TOP * scale;
+        let _ = w.set_position(PhysicalPosition::new(x, y));
+    }
+    w.show().map_err(|e| e.to_string())?;
+    w.set_focus().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn hide_overlay(app: AppHandle) -> Result<(), String> {
+    match app.get_webview_window("overlay") {
+        Some(w) => w.hide().map_err(|e| e.to_string()),
+        None => Ok(()),
+    }
+}
+
+/// Gives focus back to the app the user was in (after Esc in the fill window or palette).
+#[tauri::command]
+pub async fn restore_focus(state: State<'_, RememberedTarget>) -> Result<(), String> {
+    let target = *state.0.lock().unwrap();
+    if let Some(t) = target {
+        // Polls until the app is in front, so keep it off the main thread.
+        tauri::async_runtime::spawn_blocking(move || focus::activate_and_wait(&t))
+            .await
+            .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 /// Opens the editor window, or brings it to the front if it is already open.

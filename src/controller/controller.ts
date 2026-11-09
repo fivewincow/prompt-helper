@@ -10,16 +10,20 @@ import { pushRecent } from "../core/search";
 import type { AppData, ItemRef, Mode } from "../core/types";
 import {
   checkAccessibility,
+  hideOverlay,
   openAccessibilitySettings,
   openEditor,
   pasteText,
   quitApp,
   rememberFrontmost,
+  restoreFocus,
   setShortcuts,
+  showOverlay,
   showToast,
 } from "../bridge/commands";
 import { emitRegistrationResult, onDataChanged, onShortcut } from "../bridge/events";
 import { loadAppData, saveAppData } from "../bridge/store";
+import { overlayStore } from "../overlay/overlayStore";
 import { syncTray } from "./tray";
 
 let data: AppData;
@@ -88,8 +92,9 @@ export async function handleAction(actionId: string): Promise<void> {
   if ((plan.kind === "fill" || plan.kind === "paste") && plan.fellBack) void showToast(fellBackMessage(data.settings.mode));
   switch (plan.kind) {
     case "fill":
-      // Until the fill window exists (Task 13), a fill plan pastes directly.
-      await pasteAndRecord(plan.text, { kind: "template", id: plan.templateId });
+      overlayStore.setView("fill", data);
+      overlayStore.dispatchFill({ type: "open", templateId: plan.templateId, title: plan.title, text: plan.text });
+      await showOverlay("fill");
       return;
     case "paste":
       await pasteAndRecord(plan.text, plan.ref);
@@ -98,13 +103,37 @@ export async function handleAction(actionId: string): Promise<void> {
       await setMode(plan.next);
       void showToast(modeChangedMessage(plan.next));
       return;
-    case "palette": // Task 14
+    case "palette":
+      // While the fill window is open, the palette key opens its phrase search instead.
+      if (overlayStore.get().view === "fill") {
+        overlayStore.dispatchFill({ type: "key", input: primaryKey("k") });
+        await showOverlay("fill");
+      }
+      return; // Task 14 opens the palette otherwise.
     case "none":
       return;
   }
 }
 
+/** A synthetic Cmd/Ctrl+<letter> press for the fill reducer. */
+function primaryKey(letter: string) {
+  return {
+    key: letter,
+    code: `Key${letter.toUpperCase()}`,
+    metaKey: platform === "mac",
+    ctrlKey: platform === "windows",
+    shiftKey: false,
+    isComposing: false,
+  };
+}
+
 export async function startController(): Promise<void> {
+  overlayStore.setPlatform(platform);
+  overlayStore.onFillEffect(async (effect, closing) => {
+    await hideOverlay();
+    if (effect.type === "paste") await pasteAndRecord(effect.text, { kind: "template", id: closing.templateId });
+    else await restoreFocus();
+  });
   data = (await loadAppData()).data;
   await registerShortcuts();
   await refreshTray();

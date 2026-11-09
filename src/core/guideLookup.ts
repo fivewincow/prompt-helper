@@ -31,3 +31,18 @@ export function guideFor(key: GuideKey, mode: Mode): { entry: GuideEntry; tips: 
   const source = (mode === "claude" ? undefined : entry.sources[mode]) ?? entry.sources.claude;
   return { entry, tips, source };
 }
+
+/** Line indexes of the recommended closing sentence: non-blank lines after the last block. */
+export function closingLines(text: string): Set<number> {
+  const lines = text.split("\n");
+  let lastHeading = -1;
+  lines.forEach((l, i) => {
+    if (isHeading(l)) lastHeading = i;
+  });
+  const out = new Set<number>();
+  if (lastHeading === -1) return out;
+  let i = lastHeading;
+  while (i < lines.length && !isBlank(lines[i])) i++;
+  for (; i < lines.length; i++) if (!isBlank(lines[i])) out.add(i);
+  return out;
+}

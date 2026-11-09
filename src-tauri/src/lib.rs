@@ -55,6 +55,9 @@ pub fn run() {
             app_windows::show_toast,
             app_windows::open_editor,
             app_windows::quit_app,
+            app_windows::show_overlay,
+            app_windows::hide_overlay,
+            app_windows::restore_focus,
         ])
         .setup(|app| {
             // Accessory policy: no Dock icon and no app switcher entry, like other menu bar apps.

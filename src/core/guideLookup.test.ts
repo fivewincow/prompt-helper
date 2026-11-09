@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { guideFor, guideKeyAt } from "./guideLookup";
+import { closingLines, guideFor, guideKeyAt } from "./guideLookup";
 import { DEFAULT_TEMPLATES } from "./defaults/templates";
 import { GUIDE_ENTRIES } from "./defaults/guide";
 
@@ -49,5 +49,21 @@ describe("guideFor", () => {
     expect(guideFor("context", "claude").tips).toEqual([GUIDE_ENTRIES.context.tips.all]);
     expect(guideFor("done", "codex").tips).toEqual([GUIDE_ENTRIES.done.tips.codex]);
     expect(guideFor("cases", "gemini").tips).toEqual([]);
+  });
+});
+
+describe("closingLines", () => {
+  test("marks the lines after the last block as the closing sentence", () => {
+    const lines = body.split("\n");
+    const closing = closingLines(body);
+    expect([...closing].map((i) => lines[i])).toEqual(["코드 전에 계획을 먼저 보여줘"]);
+  });
+
+  test("a template whose last block runs to the end has no closing sentence", () => {
+    expect(closingLines("## 목표\nx\n\n## 완료 조건\ny").size).toBe(0);
+  });
+
+  test("text without headings has no closing sentence", () => {
+    expect(closingLines("그냥 문장").size).toBe(0);
   });
 });
