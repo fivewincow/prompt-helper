@@ -65,6 +65,32 @@ pub fn show_toast(app: AppHandle, message: String) -> Result<(), String> {
     window.show().map_err(|e| e.to_string())
 }
 
+/// Opens the editor window, or brings it to the front if it is already open.
+/// `tab` selects the starting tab (wired up in Task 15).
+#[tauri::command]
+pub fn open_editor(app: AppHandle, tab: Option<String>) -> Result<(), String> {
+    let _ = tab;
+    if let Some(w) = app.get_webview_window("editor") {
+        let _ = w.unminimize();
+        w.show().map_err(|e| e.to_string())?;
+        return w.set_focus().map_err(|e| e.to_string());
+    }
+    let w = WebviewWindowBuilder::new(&app, "editor", WebviewUrl::App("editor.html".into()))
+        .title("Prompt Helper")
+        .inner_size(980.0, 640.0)
+        .min_inner_size(760.0, 480.0)
+        .center()
+        .build()
+        .map_err(|e| e.to_string())?;
+    // A menu bar app is not active by default, so explicitly bring the new window forward.
+    w.set_focus().map_err(|e| e.to_string())
+}
+
+#[tauri::command]
+pub fn quit_app(app: AppHandle) {
+    app.exit(0);
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

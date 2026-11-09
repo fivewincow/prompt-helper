@@ -53,6 +53,8 @@ pub fn run() {
             paste::paste_text,
             shortcuts::set_shortcuts,
             app_windows::show_toast,
+            app_windows::open_editor,
+            app_windows::quit_app,
         ])
         .setup(|app| {
             // Accessory policy: no Dock icon and no app switcher entry, like other menu bar apps.
