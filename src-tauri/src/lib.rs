@@ -5,6 +5,8 @@
 
 mod app_windows;
 mod focus;
+#[cfg(target_os = "macos")]
+mod panel;
 mod paste;
 mod permissions;
 mod shortcuts;
@@ -37,6 +39,8 @@ pub fn run() {
             None,
         ))
         .plugin(tauri_plugin_opener::init());
+    #[cfg(target_os = "macos")]
+    let builder = builder.plugin(tauri_nspanel::init());
 
     // On macOS, text fields only get Cmd+C/V/X/Z/A when the app menu has an Edit menu,
     // even though a menu bar app never shows its menu. Windows does not need this,
@@ -71,8 +75,9 @@ pub fn run() {
             #[cfg(target_os = "windows")]
             focus::install_tracking();
             // The fill window and palette must also show over apps in full screen.
+            #[cfg(target_os = "macos")]
             if let Some(overlay) = app.get_webview_window("overlay") {
-                app_windows::join_all_spaces(&overlay);
+                panel::make_overlay_panel(&overlay)?;
             }
             Ok(())
         })

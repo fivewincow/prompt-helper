@@ -169,8 +169,13 @@ pub fn show_overlay(app: AppHandle, view: String) -> Result<(), String> {
         let y = f64::from(area.position.y) + OVERLAY_TOP * scale;
         let _ = w.set_position(PhysicalPosition::new(x, y));
     }
-    w.show().map_err(|e| e.to_string())?;
-    w.set_focus().map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    crate::panel::show_and_focus(&app);
+    #[cfg(not(target_os = "macos"))]
+    {
+        w.show().map_err(|e| e.to_string())?;
+        w.set_focus().map_err(|e| e.to_string())?;
+    }
     #[cfg(all(target_os = "macos", debug_assertions))]
     log_window_state(&w);
     Ok(())
@@ -271,7 +276,10 @@ mod tests {
         let b = popup_collection_behavior(
             MOVE_TO_ACTIVE_SPACE | FULL_SCREEN_PRIMARY | FULL_SCREEN_NONE | IGNORES_CYCLE,
         );
-        assert_eq!(b & (MOVE_TO_ACTIVE_SPACE | FULL_SCREEN_PRIMARY | FULL_SCREEN_NONE), 0);
+        assert_eq!(
+            b & (MOVE_TO_ACTIVE_SPACE | FULL_SCREEN_PRIMARY | FULL_SCREEN_NONE),
+            0
+        );
         assert_ne!(b & IGNORES_CYCLE, 0);
     }
 }
