@@ -2,17 +2,9 @@
 
 > 윈도우용 코드는 들어 있지만, 아직 한 번도 컴파일하거나 실행해 보지 못했어요. 빌드 오류나 동작 문제가 나올 수 있어요. 오류가 나면 터미널 메시지를 그대로 복사해서 Claude에게 보내 주세요.
 
-## 1. 맥에서: 코드를 zip으로 묶기
+코드는 GitHub 저장소 https://github.com/fivewincow/prompt-helper 에서 받아요.
 
-커밋된 파일만 묶여요. `node_modules`와 빌드 결과물은 빠져요.
-
-```bash
-git -C ~/dev/prompt-helper archive -o ~/Desktop/prompt-helper.zip HEAD
-```
-
-바탕화면에 생긴 `prompt-helper.zip`을 USB나 클라우드(구글 드라이브 등)로 윈도우 PC에 옮겨요.
-
-## 2. 윈도우에서: 필요한 프로그램 설치 (처음 한 번만)
+## 1. 필요한 프로그램 설치 (처음 한 번만)
 
 PowerShell을 열고 아래를 실행해요. 관리자 권한으로 열 필요는 없어요. 설치 중에 권한을 묻는 창이 뜨면 허용해 주세요.
 
@@ -25,11 +17,15 @@ winget install --id Rustlang.Rustup
 
 # Node.js (LTS)
 winget install --id OpenJS.NodeJS.LTS
+
+# Git (GitHub에서 코드를 받을 때 필요)
+winget install --id Git.Git
 ```
 
 설치가 끝나면 **PowerShell을 닫았다가 새로 열고** 아래로 확인해요.
 
 ```powershell
+git --version
 rustup default stable-msvc
 rustc --version
 cargo --version
@@ -44,13 +40,14 @@ npm --version
   - C++ 빌드 도구: https://visualstudio.microsoft.com/visual-cpp-build-tools/ 에서 받은 뒤 설치 화면에서 "C++를 사용한 데스크톱 개발"을 체크해요.
   - Rust: https://rustup.rs 에서 `rustup-init.exe`를 받아 기본값으로 설치해요.
   - Node.js: https://nodejs.org 에서 LTS 버전을 받아요.
+  - Git: https://git-scm.com/download/win 에서 받아 기본값으로 설치해요.
 
-## 3. 압축 풀고 실행하기
+## 2. 코드 받고 실행하기
 
-zip을 `다운로드` 폴더에 두었다고 가정한 명령이에요. 다른 곳에 두었다면 경로만 바꿔 주세요.
+`내 폴더\dev\prompt-helper`에 받는 명령이에요. 다른 곳에 두고 싶으면 경로만 바꿔 주세요.
 
 ```powershell
-Expand-Archive -Path "$HOME\Downloads\prompt-helper.zip" -DestinationPath "$HOME\dev\prompt-helper"
+git clone https://github.com/fivewincow/prompt-helper.git "$HOME\dev\prompt-helper"
 cd "$HOME\dev\prompt-helper"
 npm install
 npm run tauri dev
@@ -60,6 +57,17 @@ npm run tauri dev
 - 개발 실행(`tauri dev`)은 오류가 터미널에 바로 보여서 첫 테스트에 좋아요.
 - 앱이 뜨면 작업 표시줄 오른쪽 트레이에 아이콘이 생겨요. 안 보이면 `^`(숨겨진 아이콘) 안을 확인해 주세요.
 - 끝내려면 트레이 메뉴의 "종료"를 누르거나, 터미널에서 `Ctrl+C`를 눌러요.
+
+## 3. 새 버전 받기
+
+맥에서 고친 내용이 GitHub에 올라온 뒤에는 아래로 최신 코드를 받아 다시 실행해요.
+
+```powershell
+cd "$HOME\dev\prompt-helper"
+git pull
+npm install
+npm run tauri dev
+```
 
 ## 4. 설치 파일 만들기 (선택)
 
