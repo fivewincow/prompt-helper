@@ -372,3 +372,85 @@
   margin: 6px 0;
   color: var(--text-dim);
 }
+
+/* Sharing (settings tab) */
+.share-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.share-ok {
+  color: var(--fill);
+  font-size: 12px;
+}
+
+.share-box {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-elev);
+}
+
+.share-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-bottom: 10px;
+}
+
+.share-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.share-item {
+  display: flex;
+  min-width: 0;
+}
+
+.share-item.muted {
+  opacity: 0.55;
+}
+
+.share-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.share-tag {
+  flex: none;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+.share-tag.warn-tag {
+  color: var(--warn);
+}
+
+.share-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.btn:disabled {
+  opacity: 0.45;
+  cursor: default;
+}

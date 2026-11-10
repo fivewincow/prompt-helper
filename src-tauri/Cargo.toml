@@ -27,6 +27,8 @@ tauri-plugin-global-shortcut = "2"
 tauri-plugin-clipboard-manager = "2"
 tauri-plugin-autostart = "2"
 tauri-plugin-single-instance = "2"
+# Native save/open windows for sharing template files (shown from Rust; see share_file.rs).
+tauri-plugin-dialog = "2"
 enigo = "0.6"
 plist = "1"
 

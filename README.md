@@ -70,6 +70,14 @@ cd src-tauri && cargo clippy -- -D warnings && cargo test
 
 설정에서 "바로 붙여넣기"를 고르면 채우기 창 없이 템플릿을 그대로 붙여넣어요.
 
+## 템플릿 공유
+
+편집 창의 "단축키 · 설정" 탭 → "공유"에서 템플릿과 문구를 JSON 파일(`prompt-helper-templates-날짜.json`)로 내보내고 가져와요.
+
+- 파일에는 이름과 모드별 본문(템플릿), 갈래·문장·추천 모드(문구)만 들어가요. 단축키, 순서, 숨김 같은 개인 설정은 넣지 않아요.
+- 가져오기는 추가만 해요. 이름이 겹치는 템플릿은 "이름 (2)"로 추가하고, 이미 있는 문구는 건너뛰어요.
+- 형식: `{"format": "prompt-helper-templates", "version": 1, "exportedAt": "…", "templates": [{"name", "bodies": {"claude", "codex", "gemini"}}], "phrases": [{"category", "text", "recommendedModes"}]}`
+
 ## 데이터 파일
 
 설정과 수정한 템플릿·문구는 앱 데이터 폴더의 `data.json` 하나에 저장돼요. 기본값과 다른 부분만 저장하므로, 앱이 업데이트되어 기본 템플릿이 바뀌어도 사용자가 고친 내용은 그대로예요.

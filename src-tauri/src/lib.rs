@@ -9,6 +9,7 @@ mod focus;
 mod panel;
 mod paste;
 mod permissions;
+mod share_file;
 mod shortcuts;
 mod storage;
 mod system_shortcuts;
@@ -38,7 +39,8 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
-        .plugin(tauri_plugin_opener::init());
+        .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_dialog::init());
     #[cfg(target_os = "macos")]
     let builder = builder.plugin(tauri_nspanel::init());
 
@@ -66,6 +68,8 @@ pub fn run() {
             app_windows::show_overlay,
             app_windows::hide_overlay,
             app_windows::restore_focus,
+            share_file::export_share_file,
+            share_file::import_share_file,
         ])
         .setup(|app| {
             // Accessory policy: no Dock icon and no app switcher entry, like other menu bar apps.

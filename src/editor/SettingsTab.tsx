@@ -4,6 +4,7 @@ import { checkAccessibility, openAccessibilitySettings, type RegistrationFailure
 import { setBinding, setInsertMode, setLaunchAtLogin } from "../core/editing";
 import type { ActionId, AppData, Platform } from "../core/types";
 import { HotkeyRecorder } from "./HotkeyRecorder";
+import { SharePanel } from "./SharePanel";
 
 interface Props {
   data: AppData;
@@ -111,6 +112,8 @@ export function SettingsTab({ data, platform, systemShortcuts, failures, onChang
         </label>
         {autostartError && <p className="warn">⚠ 자동 실행 설정을 바꾸지 못했어요: {autostartError}</p>}
       </section>
+
+      <SharePanel data={data} onChange={onChange} />
 
       {platform === "mac" && (
         <section>

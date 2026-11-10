@@ -29,3 +29,8 @@ export const hideOverlay = () => invoke<void>("hide_overlay");
 export const openEditor = (tab?: EditorTab) => invoke<void>("open_editor", { tab: tab ?? null });
 export const showToast = (message: string) => invoke<void>("show_toast", { message });
 export const quitApp = () => invoke<void>("quit_app");
+/** Shows a save window and writes the file; false when the user cancels. */
+export const exportShareFile = (contents: string, fileName: string) =>
+  invoke<boolean>("export_share_file", { contents, fileName });
+/** Shows an open window and returns the file's text; null when the user cancels. */
+export const importShareFile = () => invoke<string | null>("import_share_file");
