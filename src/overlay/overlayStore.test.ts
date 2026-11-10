@@ -65,3 +65,25 @@ test("a draft stays until the paste is done, then goes", () => {
   expect(fill()!.text).toBe("{a}");
   key("Escape");
 });
+
+test("a direct switch keeps the template left as a draft", () => {
+  open("feature", "{a}");
+  type("written");
+  overlayStore.dispatchFill({ type: "open", templateId: "bugfix", title: "bugfix", text: "{b}", direct: true });
+  expect(fill()!.templateId).toBe("bugfix");
+  key("Escape");
+  open("feature", "{a}");
+  expect(fill()!.text).toBe("written");
+  key("Escape");
+});
+
+test("listeners hear which templates have a draft", () => {
+  const heard: string[][] = [];
+  overlayStore.onDraftsChanged((ids) => heard.push([...ids].sort()));
+  open("feature", "{a}");
+  type("written");
+  key("Escape");
+  overlayStore.dropDraft("feature");
+  expect(heard).toEqual([["feature"], []]);
+  overlayStore.onDraftsChanged(() => {});
+});

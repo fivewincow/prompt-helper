@@ -44,7 +44,7 @@ async function update(next: AppData): Promise<void> {
 
 async function refreshTray(): Promise<void> {
   accessibilityOk = await checkAccessibility();
-  await syncTray(data, platform, accessibilityOk, (id) => void onMenuItem(id));
+  await syncTray(data, platform, accessibilityOk, overlayStore.draftIds(), (id) => void onMenuItem(id));
 }
 
 async function setMode(mode: Mode): Promise<void> {
@@ -57,7 +57,8 @@ async function onMenuItem(id: string): Promise<void> {
   if (id.startsWith("template:")) {
     // Opening a menu bar menu does not activate this app, so the user's app is still in front.
     await rememberFrontmost();
-    return handleAction(id);
+    // A template picked from the menu is a deliberate switch: no "switch?" question.
+    return handleAction(id, { direct: true });
   }
   if (id.startsWith("phrase:")) {
     await rememberFrontmost();
@@ -89,13 +90,19 @@ export async function pasteAndRecord(text: string, ref: ItemRef): Promise<void> 
   await update({ ...data, settings: { ...data.settings, recent: pushRecent(data.settings.recent, ref) } });
 }
 
-export async function handleAction(actionId: string): Promise<void> {
+export async function handleAction(actionId: string, opts: { direct?: boolean } = {}): Promise<void> {
   const plan = planAction(actionId, data, todayString(new Date()));
   if ((plan.kind === "fill" || plan.kind === "paste") && plan.fellBack) void showToast(fellBackMessage(data.settings.mode));
   switch (plan.kind) {
     case "fill":
       overlayStore.setView("fill", data);
-      overlayStore.dispatchFill({ type: "open", templateId: plan.templateId, title: plan.title, text: plan.text });
+      overlayStore.dispatchFill({
+        type: "open",
+        templateId: plan.templateId,
+        title: plan.title,
+        text: plan.text,
+        direct: opts.direct,
+      });
       await showOverlay("fill");
       return;
     case "paste":
@@ -189,6 +196,8 @@ export async function startController(): Promise<void> {
       overlayStore.dropDraft(closing.templateId);
     } else await restoreFocus();
   });
+  // The menu bar names templates with a draft, so it follows every draft kept or dropped.
+  overlayStore.onDraftsChanged(() => void refreshTray().catch((e) => console.error("tray", e)));
   overlayStore.onPaletteEvent(async (e) => {
     if (e.type === "choose") return choosePaletteItem(e.ref);
     // Escape returns to where the user was; a click elsewhere already moved focus there.

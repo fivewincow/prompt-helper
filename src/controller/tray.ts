@@ -18,9 +18,10 @@ export async function syncTray(
   data: AppData,
   platform: Platform,
   accessibilityOk: boolean,
+  drafted: ReadonlySet<string>,
   onItem: (id: string) => void,
 ): Promise<void> {
-  const model = buildMenuModel(data, platform, accessibilityOk);
+  const model = buildMenuModel(data, platform, accessibilityOk, drafted);
   const build = (withShortcuts: boolean) =>
     Menu.new({ items: toMenuOptions(model, `${SESSION}.${++builds}`, onItem, withShortcuts) });
   // A hotkey the native menu cannot parse must not cost the user the whole menu.

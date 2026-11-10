@@ -206,3 +206,11 @@ describe("reset to the template (Cmd+R)", () => {
     expect(fillReducer(editedState, k("ㄱ", { metaKey: true, code: "KeyR" }), "mac").state!.pendingReset).toBe(true);
   });
 });
+
+describe("direct switch (a template chosen from the menu)", () => {
+  test("switches without asking", () => {
+    const r = fillReducer(editedState, { type: "open", templateId: "bugfix", title: "B", text: "{x}", direct: true }, "mac");
+    expect(r.state!.templateId).toBe("bugfix");
+    expect(r.state!.pendingReplace).toBeNull();
+  });
+});

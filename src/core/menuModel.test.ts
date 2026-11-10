@@ -58,3 +58,9 @@ test("empty phrases are not shown in the menu", () => {
   const withEmpty = { ...data, phrases: [...data.phrases, { ...data.phrases[0], id: "p-empty", text: "" }] };
   expect(JSON.stringify(buildMenuModel(withEmpty, "mac", true))).not.toContain("phrase:p-empty");
 });
+
+test("templates with a draft say so in the menu", () => {
+  const tpl = submenu(buildMenuModel(data, "mac", true, new Set(["feature"])), "템플릿");
+  expect(tpl.items[1]).toMatchObject({ id: "template:feature", text: "기능 개발 · 임시저장" });
+  expect(tpl.items[0]).toMatchObject({ id: "template:plan-doc", text: "기획 문서" });
+});

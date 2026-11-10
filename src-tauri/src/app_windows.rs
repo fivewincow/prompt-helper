@@ -50,6 +50,33 @@ pub fn join_all_spaces(window: &tauri::WebviewWindow) {
 #[cfg(not(target_os = "macos"))]
 pub fn join_all_spaces(_window: &tauri::WebviewWindow) {}
 
+/// Dev builds: logs where the overlay ended up after showing, to trace a popup that stays
+/// invisible over full-screen apps.
+#[cfg(all(target_os = "macos", debug_assertions))]
+fn log_window_state(window: &tauri::WebviewWindow) {
+    use objc2::runtime::AnyObject;
+    use objc2::{class, msg_send};
+    let w = window.clone();
+    let _ = window.run_on_main_thread(move || {
+        let Ok(ptr) = w.ns_window() else { return };
+        let ns = ptr.cast::<AnyObject>();
+        // SAFETY: plain getters on this window's live NSWindow and on the shared NSApplication.
+        let (behavior, on_active_space, visible, level, policy): (usize, bool, bool, isize, isize) = unsafe {
+            let app: *mut AnyObject = msg_send![class!(NSApplication), sharedApplication];
+            (
+                msg_send![ns, collectionBehavior],
+                msg_send![ns, isOnActiveSpace],
+                msg_send![ns, isVisible],
+                msg_send![ns, level],
+                msg_send![app, activationPolicy],
+            )
+        };
+        eprintln!(
+            "[overlay] behavior={behavior:#x} onActiveSpace={on_active_space} visible={visible} level={level} policy={policy}"
+        );
+    });
+}
+
 const TOAST_SIZE: (f64, f64) = (320.0, 64.0);
 const TOAST_MARGIN: f64 = 16.0;
 
@@ -143,7 +170,10 @@ pub fn show_overlay(app: AppHandle, view: String) -> Result<(), String> {
         let _ = w.set_position(PhysicalPosition::new(x, y));
     }
     w.show().map_err(|e| e.to_string())?;
-    w.set_focus().map_err(|e| e.to_string())
+    w.set_focus().map_err(|e| e.to_string())?;
+    #[cfg(all(target_os = "macos", debug_assertions))]
+    log_window_state(&w);
+    Ok(())
 }
 
 pub fn hide_overlay_window(app: &AppHandle) {

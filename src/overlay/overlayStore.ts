@@ -39,6 +39,14 @@ const listeners = new Set<() => void>();
  * per template, while the app runs. Opening that template again continues it.
  */
 const drafts = new Map<string, Draft>();
+let draftsListener: (templateIds: ReadonlySet<string>) => void = () => {};
+
+function keepDraft(templateId: string, draft: Draft | null) {
+  const had = drafts.has(templateId);
+  if (draft) drafts.set(templateId, draft);
+  else drafts.delete(templateId);
+  if (had !== drafts.has(templateId)) draftsListener(new Set(drafts.keys()));
+}
 let effectHandler: (effect: FillEffect, closing: FillState) => void = () => {};
 let paletteHandler: (e: PaletteEvent) => void = () => {};
 
@@ -80,11 +88,7 @@ export const overlayStore = {
     const withDraft: FillEvent =
       event.type === "open" && !event.draft ? { ...event, draft: drafts.get(event.templateId) } : event;
     const { state: fill, effect } = fillReducer(before, withDraft, state.platform);
-    if (before && fill?.templateId !== before.templateId) {
-      const draft = draftOf(before);
-      if (draft) drafts.set(before.templateId, draft);
-      else drafts.delete(before.templateId);
-    }
+    if (before && fill?.templateId !== before.templateId) keepDraft(before.templateId, draftOf(before));
     const select = effect.type === "select";
     set({
       ...state,
@@ -97,8 +101,13 @@ export const overlayStore = {
   },
   /** Called once a paste went through, so the next open starts from the template again. */
   dropDraft(templateId: string) {
-    drafts.delete(templateId);
+    keepDraft(templateId, null);
   },
+  /** Told whenever a template gains or loses its draft (the menu bar names them). */
+  onDraftsChanged(listener: (templateIds: ReadonlySet<string>) => void) {
+    draftsListener = listener;
+  },
+  draftIds: (): ReadonlySet<string> => new Set(drafts.keys()),
 };
 
 export function useOverlayStore(): OverlayState {

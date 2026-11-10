@@ -44,7 +44,8 @@ export interface FillState {
 }
 
 export type FillEvent =
-  | ({ type: "open" } & OpenRequest)
+  // `direct`: the user chose the template on purpose (menu), so switch without asking.
+  | ({ type: "open"; direct?: boolean } & OpenRequest)
   | { type: "edit"; text: string; selection: Range }
   | { type: "select"; selection: Range }
   | { type: "key"; input: KeyInput }
@@ -181,7 +182,7 @@ export function fillReducer(s: FillState | null, e: FillEvent, platform: Platfor
       // The hotkey of the template being written just keeps the writing.
       if (s && s.templateId === e.templateId && draftOf(s)) return none(s);
       // Ask before leaving written text (it is kept as a draft): Enter switches, Escape stays.
-      if (s && draftOf(s)) return none({ ...s, pendingReplace: request, pendingReset: false });
+      if (s && draftOf(s) && !e.direct) return none({ ...s, pendingReplace: request, pendingReset: false });
       return openFresh(request);
     }
     case "edit":

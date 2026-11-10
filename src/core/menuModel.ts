@@ -16,7 +16,13 @@ export function trayTitle(mode: Mode): "CC" | "CX" | "GM" {
   return MODE_INFO[mode].short;
 }
 
-export function buildMenuModel(data: AppData, platform: Platform, accessibilityOk: boolean): MenuNode[] {
+/** `drafted`: templates with writing kept from an unfinished fill window. */
+export function buildMenuModel(
+  data: AppData,
+  platform: Platform,
+  accessibilityOk: boolean,
+  drafted: ReadonlySet<string> = new Set(),
+): MenuNode[] {
   const { settings } = data;
 
   const modes: MenuNode[] = MODES.map((m) => ({
@@ -34,7 +40,8 @@ export function buildMenuModel(data: AppData, platform: Platform, accessibilityO
       return {
         type: "item",
         id: `template:${t.id}`,
-        text: t.name,
+        // Native menus cannot color an item, so the draft is named in the text.
+        text: drafted.has(t.id) ? `${t.name} · 임시저장` : t.name,
         accelerator: acc ? formatAccelerator(acc, platform) : undefined,
         shortcut: acc ?? undefined,
       };
