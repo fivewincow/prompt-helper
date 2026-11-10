@@ -21,7 +21,13 @@ export function PaletteView() {
     return () => window.removeEventListener("blur", onBlur);
   }, []);
 
-  const groups = useMemo(() => (data ? search(ps.query, data, data.settings.mode) : []), [data, ps.query]);
+  // Drafts cannot change while the palette is open (the fill window is closed), and the view
+  // remounts on every opening, so one snapshot is enough.
+  const [drafted] = useState(() => overlayStore.draftIds());
+  const groups = useMemo(
+    () => (data ? search(ps.query, data, data.settings.mode, drafted) : []),
+    [data, ps.query, drafted],
+  );
   const items = flatten(groups);
   if (!data) return null;
 

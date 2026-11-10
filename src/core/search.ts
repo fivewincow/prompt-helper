@@ -4,6 +4,8 @@ export interface SearchItem {
   ref: ItemRef;
   label: string;
   recommended: boolean;
+  /** A template with writing kept from an unfinished fill window. */
+  drafted: boolean;
   actionId?: ActionId;
 }
 
@@ -19,10 +21,11 @@ function matches(label: string, tokens: string[]): boolean {
   return tokens.every((t) => l.includes(t));
 }
 
-const templateItem = (t: Template): SearchItem => ({
+const templateItem = (t: Template, drafted: ReadonlySet<string>): SearchItem => ({
   ref: { kind: "template", id: t.id },
   label: t.name,
   recommended: false,
+  drafted: drafted.has(t.id),
   actionId: `template:${t.id}`,
 });
 
@@ -30,10 +33,16 @@ const phraseItem = (p: Phrase, mode: Mode): SearchItem => ({
   ref: { kind: "phrase", id: p.id },
   label: p.text,
   recommended: Array.isArray(p.recommendedModes) && p.recommendedModes.includes(mode),
+  drafted: false,
 });
 
 /** Groups for the palette: recent (empty query only), templates, then phrases by category. */
-export function search(query: string, data: AppData, mode: Mode): SearchGroup[] {
+export function search(
+  query: string,
+  data: AppData,
+  mode: Mode,
+  drafted: ReadonlySet<string> = new Set(),
+): SearchGroup[] {
   const tokens = norm(query).split(/\s+/).filter(Boolean);
   const visibleTemplates = data.templates.filter((t) => !t.hidden);
   const groups: SearchGroup[] = [];
@@ -42,7 +51,7 @@ export function search(query: string, data: AppData, mode: Mode): SearchGroup[] 
     const recent = data.settings.recent.flatMap((ref): SearchItem[] => {
       if (ref.kind === "template") {
         const t = visibleTemplates.find((x) => x.id === ref.id);
-        return t ? [templateItem(t)] : [];
+        return t ? [templateItem(t, drafted)] : [];
       }
       const p = data.phrases.find((x) => x.id === ref.id);
       return p ? [phraseItem(p, mode)] : [];
@@ -53,7 +62,7 @@ export function search(query: string, data: AppData, mode: Mode): SearchGroup[] 
   const templates = visibleTemplates
     .filter((t) => matches(t.name, tokens))
     .sort((a, b) => a.order - b.order)
-    .map(templateItem);
+    .map((t) => templateItem(t, drafted));
   groups.push({ title: "템플릿", items: templates });
 
   for (const category of PHRASE_CATEGORIES) {

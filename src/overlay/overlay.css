@@ -119,6 +119,20 @@
   color: #fff;
 }
 
+/* A template with a draft: warm label and a matching badge, so it stands out in the list. */
+.search-label.drafted {
+  color: var(--warn);
+}
+
+.badge.draft {
+  background: rgba(240, 180, 90, 0.18);
+  color: var(--warn);
+}
+
+.search-item.active .search-label.drafted {
+  color: #fff;
+}
+
 .search-empty {
   padding: 8px 12px;
   color: var(--text-faint);

@@ -43,7 +43,8 @@ export function SearchList({ groups, active, platform, bindings, showGroupTitles
                     onChoose(i);
                   }}
                 >
-                  <span className="search-label">{item.label}</span>
+                  <span className={item.drafted ? "search-label drafted" : "search-label"}>{item.label}</span>
+                  {item.drafted && <span className="badge draft">임시저장</span>}
                   {item.recommended && <span className="badge">추천</span>}
                   {acc && <span className="kbd">{formatAccelerator(acc, platform)}</span>}
                 </li>

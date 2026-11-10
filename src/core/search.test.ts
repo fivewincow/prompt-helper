@@ -60,3 +60,13 @@ test("empty phrases (just added in the editor) are not listed", () => {
   const withEmpty = { ...data, phrases: [...data.phrases, { ...data.phrases[0], id: "p-empty", text: "  " }] };
   expect(flatten(search("", withEmpty, "claude")).some((i) => i.ref.id === "p-empty")).toBe(false);
 });
+
+describe("drafts in search", () => {
+  test("templates with a draft are marked, in recent and in templates", () => {
+    const withRecent = { ...data, settings: { ...data.settings, recent: [{ kind: "template", id: "feature" } as const] } };
+    const groups = search("", withRecent, "claude", new Set(["feature"]));
+    const items = flatten(groups).filter((i) => i.ref.kind === "template");
+    expect(items.filter((i) => i.drafted).map((i) => i.ref.id)).toEqual(["feature", "feature"]);
+    expect(items.find((i) => i.ref.id === "plan-doc")!.drafted).toBe(false);
+  });
+});
