@@ -8,7 +8,9 @@ AI 코딩 에이전트(Claude Code, Codex, Gemini)에 보낼 프롬프트를 단
 
 ## 실행
 
-필요한 것: Node.js 20 이상, Rust(stable), Xcode Command Line Tools(맥)
+필요한 것: Node.js 20 이상, Rust(stable), Xcode Command Line Tools(맥), Visual Studio Build Tools의 C++ 도구(윈도우)
+
+윈도우에서 처음 설치한다면 아래 [윈도우에서 설치](#윈도우에서-설치)를 먼저 보세요.
 
 ```bash
 npm install
@@ -33,6 +35,48 @@ npm run typecheck && npm run lint && npm test
 ```bash
 cd src-tauri && cargo clippy -- -D warnings && cargo test
 ```
+
+## 윈도우에서 설치
+
+설치 파일(릴리스)은 아직 없어서 소스를 받아 직접 빌드해야 해요. PowerShell 기준이에요.
+
+### 1. 필요한 프로그램
+
+| 프로그램 | 설치 명령 | 없을 때 나오는 오류 |
+|---|---|---|
+| Node.js 20 이상 | `winget install OpenJS.NodeJS.LTS` | `'npm'은(는) 내부 또는 외부 명령…이 아닙니다` |
+| Rust(stable) | `winget install Rustlang.Rustup` | `failed to run 'cargo metadata' … program not found` |
+| Visual Studio Build Tools (C++ 도구) | 아래 명령 | `error: linker 'link.exe' not found` |
+
+```powershell
+winget install Microsoft.VisualStudio.2022.BuildTools --override "--passive --add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
+```
+
+- Build Tools는 몇 GB라서 시간이 걸려요. Visual Studio에 "C++를 사용한 데스크톱 개발"이 이미 있으면 건너뛰어도 돼요. VS Code는 다른 제품이라 대신할 수 없어요.
+- Build Tools를 깔았는데도 `link.exe` 오류가 나면, Visual Studio Installer → Build Tools 2022 → 수정에서 "C++를 사용한 데스크톱 개발"에 체크하고 다시 설치해요.
+- `winget`이 안 되면 Rust는 <https://rustup.rs>, Node.js는 <https://nodejs.org>에서 설치 파일을 받아요.
+- 설치한 뒤에는 **PowerShell 창을 닫고 새로 열어야** `cargo` 같은 명령의 경로가 잡혀요. `cargo --version`에 버전이 나오면 된 거예요.
+- 윈도우 10이라면 WebView2 런타임도 필요해요. 윈도우 11에는 기본으로 들어 있어요.
+
+### 2. 받아서 실행
+
+```powershell
+git clone https://github.com/fivewincow/prompt-helper
+cd prompt-helper
+npm.cmd install
+npm.cmd run tauri dev
+```
+
+첫 실행은 Rust 패키지를 모두 컴파일하느라 몇 분 걸려요. 설치 파일을 만들려면 `npm.cmd run tauri build`를 써요.
+
+### 3. 자주 나오는 오류
+
+| 오류 | 원인과 해결 |
+|---|---|
+| `이 시스템에서 스크립트를 실행할 수 없으므로 …\npm.ps1 파일을 로드할 수 없습니다` | PowerShell 실행 정책이 `npm.ps1`을 막은 거예요. `npm` 대신 `npm.cmd`를 쓰거나, `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`로 내 계정의 정책을 풀어요. |
+| `'tauri'은(는) 내부 또는 외부 명령…이 아닙니다` | `npm.cmd install`을 아직 안 했거나 실패한 거예요. 먼저 설치를 끝내요. |
+| `failed to run 'cargo metadata' … program not found` | Rust가 없거나, 설치한 뒤 PowerShell을 새로 열지 않은 거예요. |
+| `error: linker 'link.exe' not found` | Visual Studio Build Tools의 C++ 도구가 없는 거예요. 위 1번의 명령으로 설치해요. |
 
 ## 맥: 손쉬운 사용 권한
 
