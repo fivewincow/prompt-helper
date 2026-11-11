@@ -21,7 +21,7 @@ describe("mergeWithDefaults", () => {
   test("no stored data gives the defaults", () => {
     const fresh = mergeWithDefaults(null);
     expect(fresh.templates).toHaveLength(5);
-    expect(fresh.phrases).toHaveLength(17);
+    expect(fresh.phrases).toHaveLength(18);
     expect(fresh.settings).toEqual(defaultSettings());
   });
 

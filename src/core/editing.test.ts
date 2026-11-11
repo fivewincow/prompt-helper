@@ -109,9 +109,9 @@ describe("phrases", () => {
   });
 
   test("moving renumbers the order", () => {
-    const moved = movePhrase(d, "p17", 0);
-    expect(moved.phrases[0].id).toBe("p17");
-    expect(moved.phrases.map((p) => p.order)).toEqual([...Array(17).keys()]);
+    const moved = movePhrase(d, "p18", 0);
+    expect(moved.phrases[0].id).toBe("p18");
+    expect(moved.phrases.map((p) => p.order)).toEqual([...Array(18).keys()]);
   });
 });
 

@@ -1,10 +1,30 @@
 import { describe, expect, test } from "vitest";
 import { closingLines, guideFor, guideKeyAt } from "./guideLookup";
-import { DEFAULT_TEMPLATES } from "./defaults/templates";
 import { GUIDE_ENTRIES } from "./defaults/guide";
 
-const body = DEFAULT_TEMPLATES.find((t) => t.id === "feature")!.bodies.claude;
-const bug = DEFAULT_TEMPLATES.find((t) => t.id === "bugfix")!.bodies.claude;
+// The lookup reads "## " headings. The built-in templates use XML tags instead, so these
+// tests carry their own heading-style text.
+const body = `## 목표
+{무엇을} — 이유: {왜}
+
+## 참고
+@{따라할 파일}
+
+## 범위와 제약
+- 포함: {}
+- 제외: {}
+
+## 완료 조건
+- {관찰 가능한 동작}
+- {테스트 명령} 실행 후 명령과 결과를 보고해줘
+
+코드 전에 계획을 먼저 보여줘`;
+const bug = `<error_log>
+{에러 메시지}
+</error_log>
+
+## 증상
+{실제 동작}`;
 
 describe("guideKeyAt", () => {
   test("cursor on a heading line maps that heading", () => {

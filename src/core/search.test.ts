@@ -16,13 +16,13 @@ describe("search", () => {
 
   test("matches phrases by text and leaves out empty groups", () => {
     const labels = flatten(search("계획", data, "claude")).map((i) => i.label);
-    expect(labels).toEqual(expect.arrayContaining(["코드 전에 계획을 먼저 보여줘", "계획만 세우고 멈춰줘"]));
+    expect(labels).toEqual(expect.arrayContaining(["코드 전에 `<plan>` 태그 안에 단계별 계획을 먼저 보여줘", "계획만 세우고 내 승인을 기다려줘"]));
     expect(search("계획", data, "claude").some((g) => g.title === "템플릿")).toBe(false);
   });
 
   test("every query token must match", () => {
     expect(flatten(search("테스트 보고", data, "claude")).map((i) => i.label)).toEqual([
-      "{테스트 명령} 실행 후 명령과 결과를 보고해줘",
+      "{테스트 명령} 실행 후 터미널 명령어와 결과를 보고해줘",
     ]);
   });
 

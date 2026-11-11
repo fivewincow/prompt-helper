@@ -58,7 +58,7 @@ test("cleared bindings are not registered", () => {
 test("phrases render the current mode's rules file", () => {
   expect(planPhrase("p14", { ...data, settings: { ...data.settings, mode: "gemini" } }, "")).toMatchObject({
     kind: "paste",
-    text: "작업 전에 GEMINI.md을 먼저 읽어줘",
+    text: "작업 전에 GEMINI.md을 먼저 읽고 컨벤션을 숙지해줘",
     ref: { kind: "phrase", id: "p14" },
   });
   expect(planPhrase("nope", data, "").kind).toBe("none");
